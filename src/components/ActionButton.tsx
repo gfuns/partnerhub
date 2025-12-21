@@ -10,7 +10,7 @@ interface ActionButtonProps {
   icon: LucideIcon;
   label?: string;
   tooltip?: string;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: 'default' | 'destructive' | 'ghost';
   disabled?: boolean;
 }
