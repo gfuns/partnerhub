@@ -25,8 +25,11 @@ interface Agent {
 interface ReassignModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  terminalId: string;
-  currentAgent: string;
+  terminalId?: string;
+  title?: string;
+  description?: string;
+  currentAgent?: string;
+  currentAgentId?: string;
   agents: Agent[];
   onConfirm: (agentId: string) => void;
 }
@@ -35,7 +38,10 @@ export function ReassignModal({
   open,
   onOpenChange,
   terminalId,
+  title,
+  description,
   currentAgent,
+  currentAgentId,
   agents,
   onConfirm,
 }: ReassignModalProps) {
@@ -52,9 +58,9 @@ export function ReassignModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reassign Terminal</DialogTitle>
+          <DialogTitle>{title || 'Reassign Terminal'}</DialogTitle>
           <DialogDescription>
-            Reassign terminal {terminalId} from {currentAgent} to another agent.
+            {description || `Reassign terminal ${terminalId} from ${currentAgent} to another agent.`}
           </DialogDescription>
         </DialogHeader>
 
