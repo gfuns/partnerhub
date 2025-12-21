@@ -57,7 +57,7 @@ const columns = [
     header: '',
     className: 'w-12',
     render: (item: typeof mockSettlements[0]) => (
-      <Link to={`/agent/settlements/${item.id}`}>
+      <Link to={`/settlements/${item.id}`}>
         <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
       </Link>
     ),

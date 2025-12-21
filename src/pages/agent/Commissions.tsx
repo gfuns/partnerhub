@@ -50,7 +50,7 @@ const columns = [
     header: '',
     className: 'w-12',
     render: (item: typeof mockCommissions[0]) => (
-      <Link to={`/agent/commissions/${item.id}`}>
+      <Link to={`/commissions/${item.id}`}>
         <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
       </Link>
     ),

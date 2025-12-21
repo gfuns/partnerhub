@@ -44,7 +44,7 @@ const columns = [
     className: 'w-24',
     render: (item: typeof mockTerminals[0]) => (
       <div className="flex items-center gap-1">
-        <Link to={`/agent/terminals/${item.terminalId}`}>
+        <Link to={`/my-terminals/${item.id}`}>
           <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
         </Link>
         <Link to={`/agent/transactions?terminal=${item.terminalId}`}>
