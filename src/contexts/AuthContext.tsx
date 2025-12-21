@@ -9,6 +9,17 @@ export interface Partner {
   brand_color?: string;
 }
 
+export interface AccountContext {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  partnerLogoUrl?: string;
+  partnerBrandColor?: string;
+  role: UserRole;
+  roleLabel: string;
+  helperText?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -23,7 +34,9 @@ interface AuthContextType {
   partner: Partner | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, accountType: 'partner' | 'agent') => Promise<void>;
+  pendingContexts: AccountContext[] | null;
+  authenticate: (email: string, password: string, accountType: 'partner' | 'agent') => Promise<AccountContext[]>;
+  selectContext: (context: AccountContext) => void;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
 }
@@ -38,75 +51,123 @@ const DEFAULT_PARTNER: Partner = {
   brand_color: undefined,
 };
 
-// Mock users for demo
-const MOCK_USERS: Record<string, User> = {
+// Role permissions mapping
+const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
+  partner_admin: [
+    'dashboard.view',
+    'agents.view', 'agents.create', 'agents.edit', 'agents.disable',
+    'terminals.view', 'terminals.create', 'terminals.assign', 'terminals.revoke',
+    'transactions.view', 'transactions.export',
+    'reports.view', 'reports.export',
+    'monitoring.view',
+    'users.view', 'users.create', 'users.edit', 'users.disable',
+    'settings.view', 'settings.edit',
+  ],
+  partner_staff: [
+    'dashboard.view',
+    'agents.view',
+    'terminals.view',
+    'transactions.view',
+    'reports.view',
+    'monitoring.view',
+  ],
+  agent: [
+    'dashboard.view',
+    'my-terminals.view',
+    'transactions.view',
+    'settlements.view',
+    'commissions.view',
+    'profile.view', 'profile.edit',
+  ],
+};
+
+// Mock account contexts for demo users
+const MOCK_USER_CONTEXTS: Record<string, { name: string; contexts: AccountContext[] }> = {
   'partner@demo.com': {
-    id: '1',
-    email: 'partner@demo.com',
     name: 'John Smith',
-    role: 'partner_admin',
-    permissions: [
-      'dashboard.view',
-      'agents.view', 'agents.create', 'agents.edit', 'agents.disable',
-      'terminals.view', 'terminals.create', 'terminals.assign', 'terminals.revoke',
-      'transactions.view', 'transactions.export',
-      'reports.view', 'reports.export',
-      'monitoring.view',
-      'users.view', 'users.create', 'users.edit', 'users.disable',
-      'settings.view', 'settings.edit',
+    contexts: [
+      {
+        id: 'ctx-1',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'partner_admin',
+        roleLabel: 'Partner Admin',
+      },
     ],
-    partner: {
-      id: 'page-financials',
-      name: 'Page Financials',
-      logo_url: undefined,
-      brand_color: '215 25% 50%',
-    },
   },
   'staff@demo.com': {
-    id: '2',
-    email: 'staff@demo.com',
     name: 'Sarah Johnson',
-    role: 'partner_staff',
-    permissions: [
-      'dashboard.view',
-      'agents.view',
-      'terminals.view',
-      'transactions.view',
-      'reports.view',
-      'monitoring.view',
+    contexts: [
+      {
+        id: 'ctx-2',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'partner_staff',
+        roleLabel: 'Partner Staff',
+      },
     ],
-    partner: {
-      id: 'page-financials',
-      name: 'Page Financials',
-      logo_url: undefined,
-      brand_color: '215 25% 50%',
-    },
   },
   'agent@demo.com': {
-    id: '3',
-    email: 'agent@demo.com',
     name: 'Michael Brown',
-    role: 'agent',
-    permissions: [
-      'dashboard.view',
-      'my-terminals.view',
-      'transactions.view',
-      'settlements.view',
-      'commissions.view',
-      'profile.view', 'profile.edit',
+    contexts: [
+      {
+        id: 'ctx-3',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'agent',
+        roleLabel: 'Agent',
+        helperText: '5 terminals',
+      },
     ],
-    partner: {
-      id: 'page-financials',
-      name: 'Page Financials',
-      logo_url: undefined,
-      brand_color: '215 25% 50%',
-    },
+  },
+  // Multi-context user for demo
+  'multi@demo.com': {
+    name: 'Alex Thompson',
+    contexts: [
+      {
+        id: 'ctx-4',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'partner_admin',
+        roleLabel: 'Partner Admin',
+      },
+      {
+        id: 'ctx-5',
+        partnerId: 'quickpay-ng',
+        partnerName: 'QuickPay Nigeria',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '142 76% 36%',
+        role: 'partner_staff',
+        roleLabel: 'Partner Staff',
+      },
+      {
+        id: 'ctx-6',
+        partnerId: 'fintech-solutions',
+        partnerName: 'Fintech Solutions',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '262 83% 58%',
+        role: 'agent',
+        roleLabel: 'Agent',
+        helperText: '12 terminals',
+      },
+    ],
   },
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingContexts, setPendingContexts] = useState<AccountContext[] | null>(null);
+  const [authenticatedEmail, setAuthenticatedEmail] = useState<string | null>(null);
+  const [authenticatedName, setAuthenticatedName] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for stored session
@@ -126,37 +187,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.partner?.brand_color]);
 
-  const login = useCallback(async (email: string, password: string, accountType: 'partner' | 'agent') => {
+  const authenticate = useCallback(async (email: string, password: string, accountType: 'partner' | 'agent'): Promise<AccountContext[]> => {
     setIsLoading(true);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const mockUser = MOCK_USERS[email.toLowerCase()];
+    const mockUserData = MOCK_USER_CONTEXTS[email.toLowerCase()];
     
-    if (!mockUser) {
+    if (!mockUserData) {
       setIsLoading(false);
-      throw new Error('Invalid credentials');
+      throw new Error('Invalid email or password');
     }
 
-    // Validate account type matches user role
-    if (accountType === 'agent' && mockUser.role !== 'agent') {
+    // Filter contexts by account type
+    const filteredContexts = mockUserData.contexts.filter(ctx => {
+      if (accountType === 'agent') {
+        return ctx.role === 'agent';
+      } else {
+        return ctx.role === 'partner_admin' || ctx.role === 'partner_staff';
+      }
+    });
+
+    if (filteredContexts.length === 0) {
       setIsLoading(false);
-      throw new Error('Invalid account type for this user');
-    }
-    
-    if (accountType === 'partner' && mockUser.role === 'agent') {
-      setIsLoading(false);
-      throw new Error('Invalid account type for this user');
+      throw new Error('Invalid email or password');
     }
 
-    setUser(mockUser);
-    localStorage.setItem('xtrapay_user', JSON.stringify(mockUser));
+    // Store authenticated email and name for context selection
+    setAuthenticatedEmail(email.toLowerCase());
+    setAuthenticatedName(mockUserData.name);
+    setPendingContexts(filteredContexts);
     setIsLoading(false);
+
+    return filteredContexts;
   }, []);
+
+  const selectContext = useCallback((context: AccountContext) => {
+    if (!authenticatedEmail || !authenticatedName) {
+      throw new Error('Not authenticated');
+    }
+
+    const newUser: User = {
+      id: context.id,
+      email: authenticatedEmail,
+      name: authenticatedName,
+      role: context.role,
+      permissions: ROLE_PERMISSIONS[context.role],
+      partner: {
+        id: context.partnerId,
+        name: context.partnerName,
+        logo_url: context.partnerLogoUrl,
+        brand_color: context.partnerBrandColor,
+      },
+    };
+
+    setUser(newUser);
+    setPendingContexts(null);
+    setAuthenticatedEmail(null);
+    setAuthenticatedName(null);
+    localStorage.setItem('xtrapay_user', JSON.stringify(newUser));
+  }, [authenticatedEmail, authenticatedName]);
 
   const logout = useCallback(() => {
     setUser(null);
+    setPendingContexts(null);
+    setAuthenticatedEmail(null);
+    setAuthenticatedName(null);
     localStorage.removeItem('xtrapay_user');
   }, []);
 
@@ -174,7 +271,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         partner,
         isAuthenticated: !!user,
         isLoading,
-        login,
+        pendingContexts,
+        authenticate,
+        selectContext,
         logout,
         hasPermission,
       }}
