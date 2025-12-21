@@ -36,7 +36,7 @@ export default function Profile() {
 
   return (
     <div>
-      <PageHeader title="Profile" description="Your business and contact information." action={<Button variant="outline" onClick={() => setRequestModalOpen(true)}><MessageSquare className="mr-2 h-4 w-4" />Request Update</Button>} />
+      <PageHeader title="Profile" description="Your business and contact information." actions={<Button variant="outline" onClick={() => setRequestModalOpen(true)}><MessageSquare className="mr-2 h-4 w-4" />Request Update</Button>} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Building className="h-5 w-5" />Business Information</CardTitle><CardDescription>Your registered business details.</CardDescription></CardHeader>
