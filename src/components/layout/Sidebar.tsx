@@ -44,7 +44,7 @@ const partnerNavItems: NavItem[] = [
 const agentNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
   { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'my-terminals.view' },
-  { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
+  { label: 'Transactions', href: '/agent/transactions', icon: Receipt, permission: 'transactions.view' },
   { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
   { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
   { label: 'Profile', href: '/profile', icon: UserCircle, permission: 'profile.view' },
