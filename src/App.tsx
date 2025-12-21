@@ -93,8 +93,13 @@ const App = () => (
               
               {/* Agent routes */}
               <Route path="/my-terminals" element={<MyTerminals />} />
+              <Route path="/my-terminals/:id" element={<AgentTerminalDetails />} />
+              <Route path="/agent/transactions" element={<AgentTransactions />} />
+              <Route path="/agent/transactions/:id" element={<AgentTransactionDetails />} />
               <Route path="/settlements" element={<Settlements />} />
+              <Route path="/settlements/:id" element={<SettlementDetails />} />
               <Route path="/commissions" element={<Commissions />} />
+              <Route path="/commissions/:id" element={<CommissionDetails />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
 
