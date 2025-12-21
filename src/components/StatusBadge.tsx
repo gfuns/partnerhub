@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'success' | 'error' | 'warning';
+type StatusType = 'online' | 'offline' | 'pending' | 'success' | 'error' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -15,12 +15,22 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     text: 'text-success',
     dot: 'bg-success',
   },
+  active: {
+    bg: 'bg-success/10',
+    text: 'text-success',
+    dot: 'bg-success',
+  },
   success: {
     bg: 'bg-success/10',
     text: 'text-success',
     dot: 'bg-success',
   },
   offline: {
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    dot: 'bg-muted-foreground',
+  },
+  disabled: {
     bg: 'bg-muted',
     text: 'text-muted-foreground',
     dot: 'bg-muted-foreground',
@@ -35,7 +45,17 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     text: 'text-warning',
     dot: 'bg-warning',
   },
+  suspended: {
+    bg: 'bg-warning/10',
+    text: 'text-warning',
+    dot: 'bg-warning',
+  },
   error: {
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    dot: 'bg-destructive',
+  },
+  revoked: {
     bg: 'bg-destructive/10',
     text: 'text-destructive',
     dot: 'bg-destructive',
@@ -44,11 +64,15 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
 
 const statusLabels: Record<StatusType, string> = {
   online: 'Online',
+  active: 'Active',
   offline: 'Offline',
+  disabled: 'Disabled',
   pending: 'Pending',
   success: 'Success',
   error: 'Failed',
   warning: 'Warning',
+  suspended: 'Suspended',
+  revoked: 'Revoked',
 };
 
 export function StatusBadge({ status, label, showDot = true, size = 'md' }: StatusBadgeProps) {
