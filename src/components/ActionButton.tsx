@@ -8,7 +8,8 @@ import {
 
 interface ActionButtonProps {
   icon: LucideIcon;
-  label: string;
+  label?: string;
+  tooltip?: string;
   onClick: () => void;
   variant?: 'default' | 'destructive' | 'ghost';
   disabled?: boolean;
@@ -17,10 +18,12 @@ interface ActionButtonProps {
 export function ActionButton({
   icon: Icon,
   label,
+  tooltip,
   onClick,
   variant = 'ghost',
   disabled = false,
 }: ActionButtonProps) {
+  const tooltipText = tooltip || label || '';
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -35,7 +38,7 @@ export function ActionButton({
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>{label}</p>
+        <p>{tooltipText}</p>
       </TooltipContent>
     </Tooltip>
   );

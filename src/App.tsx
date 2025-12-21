@@ -10,12 +10,30 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+
+// Partner pages - Agents
 import AgentsList from "./pages/agents/AgentsList";
+import AddAgent from "./pages/agents/AddAgent";
+import EditAgent from "./pages/agents/EditAgent";
+import AgentDetails from "./pages/agents/AgentDetails";
+
+// Partner pages - Terminals
 import TerminalsList from "./pages/terminals/TerminalsList";
+import IssuePOS from "./pages/terminals/IssuePOS";
+import TerminalDetails from "./pages/terminals/TerminalDetails";
+
+// Partner pages - Transactions
 import TransactionsList from "./pages/transactions/TransactionsList";
+import TransactionDetails from "./pages/transactions/TransactionDetails";
+
+// Partner pages - Users
+import UsersList from "./pages/users/UsersList";
+import CreateUser from "./pages/users/CreateUser";
+import UserDetails from "./pages/users/UserDetails";
+
+// Partner pages - Other
 import ReportsList from "./pages/reports/ReportsList";
 import MonitoringDashboard from "./pages/monitoring/MonitoringDashboard";
-import UsersList from "./pages/users/UsersList";
 import SettingsPage from "./pages/settings/SettingsPage";
 
 // Agent pages
@@ -43,13 +61,29 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               
-              {/* Partner routes */}
+              {/* Partner routes - Agents */}
               <Route path="/agents" element={<AgentsList />} />
+              <Route path="/agents/new" element={<AddAgent />} />
+              <Route path="/agents/:id" element={<AgentDetails />} />
+              <Route path="/agents/:id/edit" element={<EditAgent />} />
+              
+              {/* Partner routes - Terminals */}
               <Route path="/terminals" element={<TerminalsList />} />
+              <Route path="/terminals/new" element={<IssuePOS />} />
+              <Route path="/terminals/:id" element={<TerminalDetails />} />
+              
+              {/* Partner routes - Transactions */}
               <Route path="/transactions" element={<TransactionsList />} />
+              <Route path="/transactions/:id" element={<TransactionDetails />} />
+              
+              {/* Partner routes - Users */}
+              <Route path="/users" element={<UsersList />} />
+              <Route path="/users/new" element={<CreateUser />} />
+              <Route path="/users/:id" element={<UserDetails />} />
+              
+              {/* Partner routes - Other */}
               <Route path="/reports" element={<ReportsList />} />
               <Route path="/monitoring" element={<MonitoringDashboard />} />
-              <Route path="/users" element={<UsersList />} />
               <Route path="/settings" element={<SettingsPage />} />
               
               {/* Agent routes */}

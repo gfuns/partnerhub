@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'success' | 'error' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended';
+type StatusType = 'online' | 'offline' | 'pending' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -55,6 +55,11 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     text: 'text-destructive',
     dot: 'bg-destructive',
   },
+  failed: {
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    dot: 'bg-destructive',
+  },
   revoked: {
     bg: 'bg-destructive/10',
     text: 'text-destructive',
@@ -70,6 +75,7 @@ const statusLabels: Record<StatusType, string> = {
   pending: 'Pending',
   success: 'Success',
   error: 'Failed',
+  failed: 'Failed',
   warning: 'Warning',
   suspended: 'Suspended',
   revoked: 'Revoked',
