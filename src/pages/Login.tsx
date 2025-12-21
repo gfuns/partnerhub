@@ -12,7 +12,7 @@ type AccountType = 'partner' | 'agent';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { authenticate, selectContext, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
@@ -30,17 +30,25 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      await login(email, password, accountType);
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully logged in.',
-      });
-      navigate('/dashboard');
+      const contexts = await authenticate(email, password, accountType);
+      
+      if (contexts.length === 1) {
+        // Single context - auto-select and redirect to dashboard
+        selectContext(contexts[0]);
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully logged in.',
+        });
+        navigate('/dashboard');
+      } else {
+        // Multiple contexts - redirect to context selection
+        navigate('/choose-account');
+      }
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Login failed',
-        description: error instanceof Error ? error.message : 'Invalid credentials',
+        description: 'Invalid email or password',
       });
     } finally {
       setIsSubmitting(false);
@@ -163,6 +171,7 @@ export default function Login() {
               <p><span className="font-medium">Partner Admin:</span> partner@demo.com</p>
               <p><span className="font-medium">Partner Staff:</span> staff@demo.com</p>
               <p><span className="font-medium">Agent:</span> agent@demo.com</p>
+              <p><span className="font-medium text-brand">Multi-Account:</span> multi@demo.com</p>
               <p className="mt-1 italic">Any password works</p>
             </div>
           </div>

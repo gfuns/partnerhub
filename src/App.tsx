@@ -9,6 +9,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 // Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import ChooseAccount from "./pages/ChooseAccount";
 import Dashboard from "./pages/Dashboard";
 
 // Partner pages - Agents
@@ -61,6 +62,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/choose-account" element={<ChooseAccount />} />
             
             {/* Dashboard routes */}
             <Route element={<DashboardLayout />}>
