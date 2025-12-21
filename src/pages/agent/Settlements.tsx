@@ -1,26 +1,38 @@
-import { Wallet, Clock, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Eye, Wallet, Clock, CheckCircle, Calendar } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ActionButton } from '@/components/ActionButton';
+import { TablePagination } from '@/components/TablePagination';
 
 const mockSettlements = [
-  { id: '1', reference: 'STL-001234', amount: '₦125,000', status: 'success', date: '2024-01-15', paidAt: '2024-01-16 09:00' },
-  { id: '2', reference: 'STL-001235', amount: '₦89,500', status: 'pending', date: '2024-01-14', paidAt: '-' },
-  { id: '3', reference: 'STL-001236', amount: '₦156,000', status: 'success', date: '2024-01-13', paidAt: '2024-01-14 09:00' },
-  { id: '4', reference: 'STL-001237', amount: '₦78,200', status: 'success', date: '2024-01-12', paidAt: '2024-01-13 09:00' },
-  { id: '5', reference: 'STL-001238', amount: '₦234,000', status: 'success', date: '2024-01-11', paidAt: '2024-01-12 09:00' },
+  { id: 'STL-001234', period: 'Jan 8-14, 2024', amount: '₦125,000', status: 'success', paidDate: '2024-01-16 09:00', transactionCount: 156 },
+  { id: 'STL-001235', period: 'Jan 1-7, 2024', amount: '₦89,500', status: 'pending', paidDate: '-', transactionCount: 98 },
+  { id: 'STL-001236', period: 'Dec 25-31, 2023', amount: '₦156,000', status: 'success', paidDate: '2024-01-02 09:00', transactionCount: 189 },
+  { id: 'STL-001237', period: 'Dec 18-24, 2023', amount: '₦78,200', status: 'success', paidDate: '2023-12-26 09:00', transactionCount: 112 },
+  { id: 'STL-001238', period: 'Dec 11-17, 2023', amount: '₦234,000', status: 'success', paidDate: '2023-12-19 09:00', transactionCount: 267 },
+  { id: 'STL-001239', period: 'Dec 4-10, 2023', amount: '₦167,500', status: 'success', paidDate: '2023-12-12 09:00', transactionCount: 198 },
 ];
 
 const columns = [
   { 
-    key: 'reference', 
-    header: 'Reference',
+    key: 'id', 
+    header: 'Settlement ID',
     render: (item: typeof mockSettlements[0]) => (
-      <span className="font-mono text-sm">{item.reference}</span>
+      <span className="font-mono text-sm">{item.id}</span>
     ),
   },
-  { key: 'date', header: 'Settlement Date' },
+  { key: 'period', header: 'Period' },
+  { 
+    key: 'transactionCount', 
+    header: 'Transactions',
+    render: (item: typeof mockSettlements[0]) => (
+      <span>{item.transactionCount}</span>
+    ),
+  },
   { 
     key: 'amount', 
     header: 'Amount',
@@ -39,10 +51,23 @@ const columns = [
       />
     ),
   },
-  { key: 'paidAt', header: 'Paid At' },
+  { key: 'paidDate', header: 'Paid Date' },
+  {
+    key: 'actions',
+    header: '',
+    className: 'w-12',
+    render: (item: typeof mockSettlements[0]) => (
+      <Link to={`/agent/settlements/${item.id}`}>
+        <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
+      </Link>
+    ),
+  },
 ];
 
 export default function Settlements() {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const pendingAmount = mockSettlements
     .filter(s => s.status === 'pending')
     .reduce((acc, s) => acc + parseInt(s.amount.replace(/[^0-9]/g, '')), 0);
@@ -50,6 +75,12 @@ export default function Settlements() {
   const totalPaid = mockSettlements
     .filter(s => s.status === 'success')
     .reduce((acc, s) => acc + parseInt(s.amount.replace(/[^0-9]/g, '')), 0);
+
+  const totalPages = Math.ceil(mockSettlements.length / pageSize);
+  const paginatedData = mockSettlements.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <div>
@@ -72,14 +103,22 @@ export default function Settlements() {
         <StatCard
           title="Next Settlement"
           value="Tomorrow"
-          icon={Wallet}
+          icon={Calendar}
         />
       </div>
 
       <DataTable
         columns={columns}
-        data={mockSettlements}
-        emptyMessage="No settlements found"
+        data={paginatedData}
+        emptyMessage="No settlements yet"
+      />
+
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={mockSettlements.length}
+        pageSize={pageSize}
       />
     </div>
   );

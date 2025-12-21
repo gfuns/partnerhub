@@ -38,8 +38,13 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 // Agent pages
 import MyTerminals from "./pages/agent/MyTerminals";
+import AgentTerminalDetails from "./pages/agent/TerminalDetails";
+import AgentTransactions from "./pages/agent/Transactions";
+import AgentTransactionDetails from "./pages/agent/TransactionDetails";
 import Settlements from "./pages/agent/Settlements";
+import SettlementDetails from "./pages/agent/SettlementDetails";
 import Commissions from "./pages/agent/Commissions";
+import CommissionDetails from "./pages/agent/CommissionDetails";
 import Profile from "./pages/agent/Profile";
 
 import NotFound from "./pages/NotFound";
