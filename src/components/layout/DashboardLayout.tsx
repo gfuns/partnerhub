@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -18,6 +18,21 @@ export function DashboardLayout() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // KYC-based redirects for agents
+  if (user?.role === 'agent' && user?.kycStatus) {
+    switch (user.kycStatus) {
+      case 'pending_onboarding':
+        return <Navigate to="/kyc-onboarding" replace />;
+      case 'pending_review':
+        return <Navigate to="/kyc-pending?status=pending_review" replace />;
+      case 'rejected':
+        return <Navigate to="/kyc-pending?status=rejected" replace />;
+      case 'suspended':
+        return <Navigate to="/kyc-pending?status=suspended" replace />;
+      // 'approved' status allows normal dashboard access
+    }
   }
 
   return (
