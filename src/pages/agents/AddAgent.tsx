@@ -18,7 +18,6 @@ interface FormData {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
-  isActive: boolean;
 }
 
 interface FormErrors {
@@ -40,7 +39,6 @@ export default function AddAgent() {
     contactName: '',
     contactEmail: '',
     contactPhone: '',
-    isActive: true,
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -81,11 +79,11 @@ export default function AddAgent() {
 
     toast({
       title: 'Agent created successfully',
-      description: `${formData.businessName} has been added to your agents.`,
+      description: `${formData.businessName} has been added with KYC status: Pending Onboarding.`,
     });
 
-    // Navigate to agent details (mock ID)
-    navigate('/agents/new-agent-123');
+    // Navigate to agents list
+    navigate('/agents');
     setIsSubmitting(false);
   };
 
@@ -174,18 +172,14 @@ export default function AddAgent() {
 
           <Card>
             <CardContent className="pt-6">
-              <FormSection title="Status">
+              <FormSection title="KYC Status">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Active</Label>
+                    <Label>Pending Onboarding</Label>
                     <p className="text-sm text-muted-foreground">
-                      Enable this agent to process transactions
+                      Agent will need to complete KYC before accessing their dashboard
                     </p>
                   </div>
-                  <Switch
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => updateField('isActive', checked)}
-                  />
                 </div>
               </FormSection>
             </CardContent>

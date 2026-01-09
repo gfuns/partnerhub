@@ -12,6 +12,7 @@ import {
   Coins,
   UserCircle,
   X,
+  FileCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
@@ -33,6 +34,7 @@ interface NavItem {
 const partnerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
   { label: 'Agents', href: '/agents', icon: Users, permission: 'agents.view' },
+  { label: 'KYC Review', href: '/agents/kyc-review', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
   { label: 'Reports', href: '/reports', icon: FileText, permission: 'reports.view' },
