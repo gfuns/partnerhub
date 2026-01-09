@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { KycStatus } from '@/types/kyc';
 
 export type UserRole = 'partner_admin' | 'partner_staff' | 'agent';
 
@@ -18,6 +19,7 @@ export interface AccountContext {
   role: UserRole;
   roleLabel: string;
   helperText?: string;
+  kycStatus?: KycStatus;
 }
 
 export interface User {
@@ -27,6 +29,7 @@ export interface User {
   role: UserRole;
   permissions: string[];
   partner?: Partner;
+  kycStatus?: KycStatus;
 }
 
 interface AuthContextType {
@@ -123,6 +126,7 @@ const MOCK_USER_CONTEXTS: Record<string, { name: string; contexts: AccountContex
         role: 'agent',
         roleLabel: 'Agent',
         helperText: '5 terminals',
+        kycStatus: 'approved' as KycStatus,
       },
     ],
   },
@@ -157,6 +161,57 @@ const MOCK_USER_CONTEXTS: Record<string, { name: string; contexts: AccountContex
         role: 'agent',
         roleLabel: 'Agent',
         helperText: '12 terminals',
+        kycStatus: 'approved' as KycStatus,
+      },
+    ],
+  },
+  // Mock Agent #1 - Pending Onboarding (KYC wizard flow)
+  'newagent@demo.com': {
+    name: 'Peter Okonkwo',
+    contexts: [
+      {
+        id: 'ctx-7',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'agent',
+        roleLabel: 'Agent',
+        helperText: 'Pending KYC',
+        kycStatus: 'pending_onboarding' as KycStatus,
+      },
+    ],
+  },
+  // Mock Agent #2 - Pending Review (under review)
+  'reviewagent@demo.com': {
+    name: 'Grace Adeyemi',
+    contexts: [
+      {
+        id: 'ctx-8',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'agent',
+        roleLabel: 'Agent',
+        helperText: 'Under Review',
+        kycStatus: 'pending_review' as KycStatus,
+      },
+    ],
+  },
+  // Mock Agent #3 - Rejected
+  'rejectedagent@demo.com': {
+    name: 'Samuel Adewale',
+    contexts: [
+      {
+        id: 'ctx-9',
+        partnerId: 'page-financials',
+        partnerName: 'Page Financials',
+        partnerLogoUrl: undefined,
+        partnerBrandColor: '215 25% 50%',
+        role: 'agent',
+        roleLabel: 'Agent',
+        kycStatus: 'rejected' as KycStatus,
       },
     ],
   },
@@ -240,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logo_url: context.partnerLogoUrl,
         brand_color: context.partnerBrandColor,
       },
+      kycStatus: context.kycStatus,
     };
 
     setUser(newUser);

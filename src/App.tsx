@@ -17,6 +17,12 @@ import AgentsList from "./pages/agents/AgentsList";
 import AddAgent from "./pages/agents/AddAgent";
 import EditAgent from "./pages/agents/EditAgent";
 import AgentDetails from "./pages/agents/AgentDetails";
+import KycReviewList from "./pages/agents/KycReviewList";
+import KycReview from "./pages/agents/KycReview";
+
+// Agent KYC pages
+import KycOnboarding from "./pages/agent/KycOnboarding";
+import KycPending from "./pages/agent/KycPending";
 
 // Partner pages - Terminals
 import TerminalsList from "./pages/terminals/TerminalsList";
@@ -63,7 +69,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/choose-account" element={<ChooseAccount />} />
-            
+            <Route path="/kyc-onboarding" element={<KycOnboarding />} />
+            <Route path="/kyc-pending" element={<KycPending status="pending_review" />} />
             {/* Dashboard routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -71,7 +78,10 @@ const App = () => (
               {/* Partner routes - Agents */}
               <Route path="/agents" element={<AgentsList />} />
               <Route path="/agents/new" element={<AddAgent />} />
+              <Route path="/agents/kyc-review" element={<KycReviewList />} />
               <Route path="/agents/:id" element={<AgentDetails />} />
+              <Route path="/agents/:id/edit" element={<EditAgent />} />
+              <Route path="/agents/:id/kyc-review" element={<KycReview />} />
               <Route path="/agents/:id/edit" element={<EditAgent />} />
               
               {/* Partner routes - Terminals */}
