@@ -170,10 +170,16 @@ export default function Login() {
             <div className="space-y-1 text-xs text-muted-foreground">
               <p><span className="font-medium">Partner Admin:</span> partner@demo.com</p>
               <p><span className="font-medium">Partner Staff:</span> staff@demo.com</p>
-              <p><span className="font-medium">Agent:</span> agent@demo.com</p>
+              <p><span className="font-medium">Agent (Approved):</span> agent@demo.com</p>
               <p><span className="font-medium text-brand">Multi-Account:</span> multi@demo.com</p>
-              <p className="mt-1 italic">Any password works</p>
             </div>
+            <p className="text-xs font-medium text-muted-foreground mt-3 mb-2">KYC Demo Agents:</p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p><span className="font-medium text-amber-600">Pending KYC:</span> newagent@demo.com</p>
+              <p><span className="font-medium text-blue-600">Under Review:</span> reviewagent@demo.com</p>
+              <p><span className="font-medium text-destructive">Rejected:</span> rejectedagent@demo.com</p>
+            </div>
+            <p className="mt-2 italic text-xs text-muted-foreground">Any password works</p>
           </div>
         </div>
       </div>
