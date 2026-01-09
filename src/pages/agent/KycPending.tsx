@@ -1,17 +1,38 @@
 import { Clock, CheckCircle2, XCircle, AlertTriangle, LogOut } from 'lucide-react';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { KycStatus } from '@/types/kyc';
 
-interface KycPendingProps {
-  status: 'pending_review' | 'rejected' | 'suspended';
-  rejectionReason?: string;
-}
+type KycPendingStatus = 'pending_review' | 'rejected' | 'suspended';
 
-export default function KycPending({ status = 'pending_review', rejectionReason }: KycPendingProps) {
-  const { logout } = useAuth();
+export default function KycPending() {
+  const { logout, user, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Get status from URL or from user's kycStatus
+  const urlStatus = searchParams.get('status') as KycPendingStatus | null;
+  const status: KycPendingStatus = urlStatus || 
+    (user?.kycStatus === 'rejected' ? 'rejected' : 
+     user?.kycStatus === 'suspended' ? 'suspended' : 'pending_review');
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirect approved agents to dashboard
+  if (user?.role === 'agent' && user?.kycStatus === 'approved') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Redirect pending_onboarding to KYC wizard
+  if (user?.role === 'agent' && user?.kycStatus === 'pending_onboarding') {
+    return <Navigate to="/kyc-onboarding" replace />;
+  }
 
   const statusConfig = {
     pending_review: {
@@ -28,7 +49,7 @@ export default function KycPending({ status = 'pending_review', rejectionReason 
       bgColor: 'bg-destructive/10',
       title: 'Application Not Approved',
       description: 'Unfortunately, your KYC application was not approved.',
-      message: rejectionReason || 'Please contact support for more information about why your application was rejected.',
+      message: 'Please contact support for more information about why your application was rejected.',
     },
     suspended: {
       icon: AlertTriangle,

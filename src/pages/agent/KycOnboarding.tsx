@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Check, Upload, Building2, User, Briefcase, FileText, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { BusinessType, KycSubmission } from '@/types/kyc';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STEPS = [
   { id: 1, title: 'Business Type', description: 'Select your business type' },
@@ -27,11 +28,27 @@ const BUSINESS_TYPES = [
 export default function KycOnboarding() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<KycSubmission>>({
     declarationAccepted: false,
   });
+
+  // Redirect if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirect approved agents to dashboard
+  if (user?.role === 'agent' && user?.kycStatus === 'approved') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Redirect pending_review/rejected/suspended to appropriate page
+  if (user?.role === 'agent' && user?.kycStatus && user.kycStatus !== 'pending_onboarding') {
+    return <Navigate to={`/kyc-pending?status=${user.kycStatus}`} replace />;
+  }
 
   const updateField = (field: keyof KycSubmission, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));

@@ -70,7 +70,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/choose-account" element={<ChooseAccount />} />
             <Route path="/kyc-onboarding" element={<KycOnboarding />} />
-            <Route path="/kyc-pending" element={<KycPending status="pending_review" />} />
+            <Route path="/kyc-pending" element={<KycPending />} />
             {/* Dashboard routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
