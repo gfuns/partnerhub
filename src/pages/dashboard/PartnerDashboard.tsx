@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { CreditCard, Users, Receipt, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { PageHeader } from '@/components/PageHeader';
@@ -5,6 +6,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { DataTable } from '@/components/DataTable';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { dashboardService } from '@/services/api';
+import { toast } from 'sonner';
 import {
   AreaChart,
   Area,
@@ -17,88 +20,125 @@ import {
   Bar,
 } from 'recharts';
 
-// Mock data
-const transactionData = [
-  { date: 'Mon', volume: 45000, count: 120 },
-  { date: 'Tue', volume: 52000, count: 145 },
-  { date: 'Wed', volume: 48000, count: 132 },
-  { date: 'Thu', volume: 61000, count: 168 },
-  { date: 'Fri', volume: 55000, count: 155 },
-  { date: 'Sat', volume: 67000, count: 189 },
-  { date: 'Sun', volume: 43000, count: 115 },
-];
-
-const terminalActivity = [
-  { hour: '00', active: 12 },
-  { hour: '04', active: 8 },
-  { hour: '08', active: 45 },
-  { hour: '12', active: 67 },
-  { hour: '16', active: 78 },
-  { hour: '20', active: 56 },
-  { hour: '23', active: 34 },
-];
-
-const recentTransactions = [
-  { id: '1', terminal: 'TRM-001', amount: '₦25,000', status: 'success', time: '2 min ago', agent: 'John Doe' },
-  { id: '2', terminal: 'TRM-042', amount: '₦150,000', status: 'success', time: '5 min ago', agent: 'Jane Smith' },
-  { id: '3', terminal: 'TRM-015', amount: '₦8,500', status: 'error', time: '8 min ago', agent: 'Mike Johnson' },
-  { id: '4', terminal: 'TRM-033', amount: '₦45,000', status: 'pending', time: '12 min ago', agent: 'Sarah Brown' },
-  { id: '5', terminal: 'TRM-027', amount: '₦12,000', status: 'success', time: '15 min ago', agent: 'David Wilson' },
-];
-
-const columns = [
-  { key: 'terminal', header: 'Terminal' },
-  { key: 'agent', header: 'Agent' },
-  { key: 'amount', header: 'Amount' },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (item: typeof recentTransactions[0]) => (
-      <StatusBadge status={item.status as 'success' | 'error' | 'pending'} size="sm" />
-    ),
-  },
-  { key: 'time', header: 'Time' },
-];
-
 export default function PartnerDashboard() {
   const { user, partner } = useAuth();
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await dashboardService.getDashboard();
+      setDashboardData(response.data);
+    } catch (error: any) {
+      toast.error('Failed to load dashboard data', {
+        description: error.message || 'Please try refreshing the page',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Transform data for charts
+  const transactionVolumeData = dashboardData?.transaction_volume
+    ? dashboardData.transaction_volume.labels.map((label: string, index: number) => ({
+        date: label,
+        volume: dashboardData.transaction_volume.data[index],
+      }))
+    : [];
+
+  const terminalActivityData = dashboardData?.terminal_activity
+    ? dashboardData.terminal_activity.labels.map((label: string, index: number) => ({
+        hour: label,
+        active: dashboardData.terminal_activity.data[index],
+      }))
+    : [];
+
+  const recentTransactions = dashboardData?.recent_transactions || [];
+
+  const columns = [
+    { key: 'terminal', header: 'Terminal' },
+    { key: 'agent', header: 'Agent' },
+    { 
+      key: 'amount_formatted', 
+      header: 'Amount',
+      render: (item: any) => item.amount_formatted,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item: any) => (
+        <StatusBadge status={item.status as 'success' | 'error' | 'pending'} size="sm" />
+      ),
+    },
+    { key: 'time', header: 'Time' },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-muted-foreground">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  const displayName = (() => {
+    const name = user?.firstName || user?.email?.split('@')[0] || '';
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  })();
 
   return (
     <div>
       <PageHeader
-        title={`Welcome back, ${user?.name?.split(' ')[0]}`}
-        description={`Here's what's happening with ${partner?.name || 'your business'} today.`}
+        title={`Welcome back, ${displayName}`}
+        // description={`Here's what's happening with ${partner?.name || 'your business'} today.`}
       />
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
           title="Total Terminals"
-          value="156"
+          value={dashboardData?.stats?.total_terminals?.value?.toString() || '0'}
           icon={CreditCard}
-          change={{ value: 12, label: 'from last month' }}
-          trend="up"
+          change={{ 
+            value: dashboardData?.stats?.total_terminals?.change || 0, 
+            label: dashboardData?.stats?.total_terminals?.change_label || 'from last month' 
+          }}
+          trend={dashboardData?.stats?.total_terminals?.change && dashboardData.stats.total_terminals.change > 0 ? 'up' : 'down'}
         />
         <StatCard
           title="Active Terminals"
-          value="142"
+          value={dashboardData?.stats?.active_terminals?.value?.toString() || '0'}
           icon={TrendingUp}
-          change={{ value: 8, label: 'currently online' }}
+          change={{ 
+            value: dashboardData?.stats?.active_terminals?.percentage || 0, 
+            label: dashboardData?.stats?.active_terminals?.label || 'currently online' 
+          }}
           trend="up"
         />
         <StatCard
           title="Today's Volume"
-          value="₦4.2M"
+          value={dashboardData?.stats?.todays_volume?.formatted || '₦0.00'}
           icon={Receipt}
-          change={{ value: 23, label: 'vs yesterday' }}
-          trend="up"
+          change={{ 
+            value: dashboardData?.stats?.todays_volume?.change || 0, 
+            label: dashboardData?.stats?.todays_volume?.change_label || 'vs yesterday' 
+          }}
+          trend={dashboardData?.stats?.todays_volume?.change && dashboardData.stats.todays_volume.change > 0 ? 'up' : 'down'}
         />
         <StatCard
           title="Failed Transactions"
-          value="12"
+          value={dashboardData?.stats?.failed_transactions?.value?.toString() || '0'}
           icon={AlertTriangle}
-          change={{ value: -5, label: 'from yesterday' }}
-          trend="down"
+          change={{ 
+            value: dashboardData?.stats?.failed_transactions?.change || 0, 
+            label: dashboardData?.stats?.failed_transactions?.change_label || 'from yesterday' 
+          }}
+          trend={dashboardData?.stats?.failed_transactions?.change && dashboardData.stats.failed_transactions.change < 0 ? 'down' : 'up'}
         />
       </div>
 
@@ -112,7 +152,7 @@ export default function PartnerDashboard() {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={transactionData}>
+                <AreaChart data={transactionVolumeData}>
                   <defs>
                     <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--brand))" stopOpacity={0.2} />
@@ -121,7 +161,7 @@ export default function PartnerDashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `₦${value / 1000}k`} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
@@ -151,7 +191,7 @@ export default function PartnerDashboard() {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={terminalActivity}>
+                <BarChart data={terminalActivityData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="hour" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />

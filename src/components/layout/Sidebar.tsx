@@ -17,7 +17,6 @@ import {
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,7 +31,7 @@ interface NavItem {
 }
 
 const partnerNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
   { label: 'Agents', href: '/agents', icon: Users, permission: 'agents.view' },
   { label: 'KYC Review', href: '/agents/kyc-review', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
@@ -44,22 +43,35 @@ const partnerNavItems: NavItem[] = [
 ];
 
 const agentNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: 'dashboard.view' },
-  { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'my-terminals.view' },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
+  { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/agent/transactions', icon: Receipt, permission: 'transactions.view' },
   { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
   { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
-  { label: 'Profile', href: '/profile', icon: UserCircle, permission: 'profile.view' },
+  { label: 'Profile', href: '/profile', icon: UserCircle }, // No permission required
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, branding, getAssetUrl } = useAuth();
   const location = useLocation();
 
-  const navItems = user?.role === 'agent' ? agentNavItems : partnerNavItems;
-  const filteredNavItems = navItems.filter(
-    (item) => !item.permission || hasPermission(item.permission)
-  );
+  // Determine if user is an agent based on role
+  const isAgent = user?.role?.startsWith('agent');
+  
+  const navItems = isAgent ? agentNavItems : partnerNavItems;
+  
+  // If user has no permissions array or empty permissions, show all items
+  // Otherwise filter based on permissions
+  const filteredNavItems = user?.permissions && user.permissions.length > 0
+    ? navItems.filter((item) => !item.permission || hasPermission(item.permission))
+    : navItems; // Show all items if no permissions defined
+
+  // Get branding-based styles
+  const sidebarStyle = {
+    backgroundColor: branding.sidebar_bg_color,
+  };
+
+  const logoUrl = getAssetUrl(branding.logo_url);
 
   return (
     <>
@@ -74,21 +86,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar transition-transform duration-300 lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col transition-transform duration-300 lg:static lg:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
+        style={sidebarStyle}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          <Logo variant="light" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
+        <div 
+          className="flex h-16 items-center justify-between px-4"
+          style={{ 
+            borderBottomColor: branding.sidebar_hover_bg_color,
+            borderBottomWidth: '1px',
+            backgroundColor: branding.sidebar_logo_bg_color || branding.sidebar_bg_color
+          }}
+        >
+          {logoUrl ? (
+            <img 
+              src={logoUrl} 
+              alt="Logo" 
+              className="h-10 max-w-[180px] object-contain"
+            />
+          ) : (
+            <Logo variant="light" size="lg" />
+          )}
+          <button
+            className="lg:hidden p-2 rounded-lg"
+            style={{ color: branding.sidebar_text_color }}
             onClick={onClose}
           >
             <X className="h-5 w-5" />
-          </Button>
+          </button>
         </div>
 
         {/* Navigation */}
@@ -101,12 +128,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   <NavLink
                     to={item.href}
                     onClick={onClose}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                      isActive
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-                    )}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+                    style={{
+                      backgroundColor: isActive ? branding.sidebar_active_bg_color : 'transparent',
+                      color: isActive ? branding.sidebar_active_text_color : branding.sidebar_text_color,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = branding.sidebar_hover_bg_color;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
                   >
                     <item.icon className="h-5 w-5 flex-shrink-0" />
                     {item.label}
@@ -118,10 +154,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
+        <div 
+          className="p-4"
+          style={{ 
+            borderTopColor: branding.sidebar_hover_bg_color,
+            borderTopWidth: '1px'
+          }}
+        >
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+            style={{ color: branding.sidebar_text_color }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = branding.sidebar_hover_bg_color;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             <LogOut className="h-5 w-5" />
             Logout

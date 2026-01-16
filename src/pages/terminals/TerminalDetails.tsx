@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Pause, RefreshCw, Activity, TrendingUp, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Ban, Activity, TrendingUp, Clock, Download, CheckCircle, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
@@ -10,115 +10,559 @@ import { PermissionGate } from '@/components/PermissionGate';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-
-const mockTerminal = {
-  id: 'TRM-001',
-  agent: 'ABC Enterprises',
-  agentId: '1',
-  status: 'online',
-  lastSeen: '2024-01-15 10:32:15',
-  todayVolume: '₦2,500,000',
-  todayTransactions: 156,
-  createdAt: '2024-01-01',
-};
-
-const mockTransactions = [
-  { id: '1', reference: 'TXN-001234', amount: '₦25,000', type: 'Transfer', status: 'success', date: '2024-01-15 10:32' },
-  { id: '2', reference: 'TXN-001235', amount: '₦150,000', type: 'Withdrawal', status: 'success', date: '2024-01-15 10:28' },
-];
-
-const mockActivityLog = [
-  { id: '1', event: 'Transaction processed', details: 'TXN-001234 - ₦25,000', timestamp: '2024-01-15 10:32:15' },
-  { id: '2', event: 'Heartbeat received', details: 'Terminal online', timestamp: '2024-01-15 10:30:00' },
-  { id: '3', event: 'Transaction processed', details: 'TXN-001233 - ₦15,000', timestamp: '2024-01-15 10:25:00' },
-];
+import terminalsService, { Terminal, TerminalStats, Transaction, TransactionListParams } from '@/services/api/terminals.service';
+import { TablePagination } from '@/components/TablePagination';
 
 export default function TerminalDetails() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
-  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  
+  const [terminal, setTerminal] = useState<Terminal | null>(null);
+  const [stats, setStats] = useState<TerminalStats | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
+  const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
 
-  const handleRevoke = () => {
-    toast({ title: 'Terminal revoked', description: `${mockTerminal.id} has been revoked.` });
-    setRevokeDialogOpen(false);
+  // Transaction filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [transactionSummary, setTransactionSummary] = useState<any>(null);
+
+  const defaultTab = searchParams.get('tab') || 'overview';
+  const pageSize = 15;
+
+  useEffect(() => {
+    if (id) {
+      loadTerminalDetails();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id && defaultTab === 'transactions') {
+      loadTransactions();
+    }
+  }, [id, currentPage, startDate, endDate, typeFilter, statusFilter, minAmount, maxAmount, searchQuery]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'transactions' && id && transactions.length === 0) {
+      loadTransactions();
+    }
   };
 
-  const handleSuspend = () => {
-    toast({ title: 'Terminal suspended', description: `${mockTerminal.id} has been suspended.` });
-    setSuspendDialogOpen(false);
+  const loadTerminalDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await terminalsService.getTerminal(id!);
+      setTerminal(response.data.terminal);
+      setStats(response.data.stats);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load terminal details',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTransactions = async () => {
+    try {
+      setLoadingTransactions(true);
+      const params: TransactionListParams = {
+        page: currentPage,
+        per_page: pageSize,
+      };
+
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      if (typeFilter && typeFilter !== 'all') params.type = typeFilter;
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
+      if (minAmount) params.min_amount = parseFloat(minAmount);
+      if (maxAmount) params.max_amount = parseFloat(maxAmount);
+      if (searchQuery) params.search = searchQuery;
+
+      const response = await terminalsService.getTransactions(id!, params);
+      setTransactions(response.data);
+      setTransactionSummary(response.summary);
+      setTotalPages(response.meta.last_page);
+      setTotalItems(response.meta.total);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load transactions',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!terminal) return;
+    try {
+      await terminalsService.toggleStatus(terminal.id);
+      toast({
+        title: 'Success',
+        description: `Terminal ${terminal.status === 'active' ? 'deactivated' : 'activated'} successfully`,
+      });
+      setToggleDialogOpen(false);
+      loadTerminalDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update terminal status',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleUnassign = async () => {
+    if (!terminal) return;
+    try {
+      await terminalsService.unassignTerminal(terminal.id);
+      toast({
+        title: 'Success',
+        description: `Terminal ${terminal.terminal_id} unassigned successfully`,
+      });
+      setUnassignDialogOpen(false);
+      loadTerminalDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to unassign terminal',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportTransactions = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast({
+          title: 'Error',
+          description: 'Authentication token not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append('token', token);
+      
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      if (typeFilter && typeFilter !== 'all') params.append('type', typeFilter);
+      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
+      if (minAmount) params.append('min_amount', minAmount);
+      if (maxAmount) params.append('max_amount', maxAmount);
+      if (searchQuery) params.append('search', searchQuery);
+
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const exportUrl = `${apiBaseUrl}/api/partner-hub/terminals/${id}/transactions/export?${params.toString()}`;
+      
+      window.open(exportUrl, '_blank');
+
+      toast({
+        title: 'Success',
+        description: 'Export started in new tab',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to export transactions',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const formatCurrency = (amount: number | undefined) => {
+    if (!amount) return '₦0.00';
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+    }).format(amount);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('en-NG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatLastSeen = (dateStr: string | undefined) => {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
   const transactionColumns = [
-    { key: 'reference', header: 'Reference', render: (item: typeof mockTransactions[0]) => <span className="font-mono text-sm">{item.reference}</span> },
-    { key: 'type', header: 'Type' },
-    { key: 'amount', header: 'Amount', render: (item: typeof mockTransactions[0]) => <span className="font-medium">{item.amount}</span> },
-    { key: 'status', header: 'Status', render: (item: typeof mockTransactions[0]) => <StatusBadge status={item.status as 'success'} size="sm" /> },
-    { key: 'date', header: 'Date' },
+    {
+      key: 'trx',
+      header: 'Transaction Ref',
+      render: (item: Transaction) => <span className="font-mono text-xs">{item.trx}</span>,
+    },
+    {
+      key: 'rrn',
+      header: 'RRN',
+      render: (item: Transaction) => <span className="font-mono text-xs">{item.rrn || '-'}</span>,
+    },
+    { 
+      key: 'service', 
+      header: 'Type',
+      render: (item: Transaction) => (
+        <span className="text-xs uppercase font-medium">{item.service}</span>
+      ),
+    },
+    {
+      key: 'from',
+      header: 'Card/Source',
+      render: (item: Transaction) => (
+        <span className="font-mono text-xs">{item.from || item.maskedpan || '-'}</span>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      render: (item: Transaction) => <span className="font-medium">{formatCurrency(parseFloat(item.amount))}</span>,
+    },
+    {
+      key: 'fee',
+      header: 'Fee',
+      render: (item: Transaction) => <span className="text-muted-foreground">{formatCurrency(parseFloat(item.fee))}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item: Transaction) => (
+        <div className="flex flex-col gap-0.5">
+          <StatusBadge status={item.status === 'success' ? 'online' : 'offline'} size="sm" />
+          {item.status_desc && (
+            <span className="text-xs text-muted-foreground">{item.status_desc}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'created_at',
+      header: 'Date',
+      render: (item: Transaction) => formatDate(item.created_at),
+    },
   ];
 
-  const activityColumns = [
-    { key: 'event', header: 'Event', render: (item: typeof mockActivityLog[0]) => <span className="font-medium">{item.event}</span> },
-    { key: 'details', header: 'Details' },
-    { key: 'timestamp', header: 'Time' },
-  ];
+  if (loading || !terminal) {
+    return <div className="p-6">Loading terminal details...</div>;
+  }
 
   return (
     <div>
       <PageHeader
-        title={mockTerminal.id}
-        description={`Assigned to ${mockTerminal.agent}`}
+        title={terminal.terminal_id}
+        description={terminal.agent ? `Assigned to ${terminal.agent.business_name}` : 'Unassigned'}
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate('/terminals')}><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-            <PermissionGate permission="terminals.revoke">
-              <Button variant="outline" onClick={() => setSuspendDialogOpen(true)}><Pause className="mr-2 h-4 w-4" />Suspend</Button>
-              <Button variant="destructive" onClick={() => setRevokeDialogOpen(true)}><Ban className="mr-2 h-4 w-4" />Revoke</Button>
+            <Button variant="ghost" onClick={() => navigate('/terminals')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            {terminal.agent_id && (
+              <PermissionGate permission="terminals.unassign">
+                <Button variant="outline" onClick={() => setUnassignDialogOpen(true)}>
+                  Unassign
+                </Button>
+              </PermissionGate>
+            )}
+            <PermissionGate permission="terminals.manage">
+              <Button
+                variant={terminal.status === 'active' ? 'destructive' : 'default'}
+                onClick={() => setToggleDialogOpen(true)}
+                disabled={terminal.status === 'revoked'}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                {terminal.status === 'active' ? 'Deactivate' : 'Activate'}
+              </Button>
             </PermissionGate>
           </div>
         }
       />
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue={defaultTab} className="space-y-6" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="activity">Activity Log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <StatCard title="Today's Volume" value={mockTerminal.todayVolume} icon={TrendingUp} />
-            <StatCard title="Transactions" value={mockTerminal.todayTransactions} icon={Activity} />
-            <StatCard title="Last Seen" value="Just now" icon={Clock} />
+          <div className="grid gap-4 md:grid-cols-4">
+            <StatCard
+              title="Today's Volume"
+              value={formatCurrency(stats?.today.volume)}
+              icon={TrendingUp}
+              subtitle={`${stats?.today.transactions || 0} transactions`}
+            />
+            <StatCard
+              title="Success Rate"
+              value={stats?.today.transactions ? `${Math.round((stats.today.successful / stats.today.transactions) * 100)}%` : '0%'}
+              icon={CheckCircle}
+              subtitle={`${stats?.today.successful || 0} successful`}
+            />
+            <StatCard
+              title="Failed Today"
+              value={stats?.today.failed || 0}
+              icon={XCircle}
+            />
+            <StatCard
+              title="Last Seen"
+              value={formatLastSeen(terminal.last_seen_at)}
+              icon={Clock}
+            />
           </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             <DetailCard title="Terminal Information">
-              <DetailRow label="Terminal ID" value={<span className="font-mono">{mockTerminal.id}</span>} />
-              <DetailRow label="Status" value={<StatusBadge status={mockTerminal.status as 'online'} size="sm" />} />
-              <DetailRow label="Last Heartbeat" value={mockTerminal.lastSeen} />
-              <DetailRow label="Created" value={mockTerminal.createdAt} />
+              <DetailRow label="Terminal ID" value={<span className="font-mono">{terminal.terminal_id}</span>} />
+              <DetailRow label="Serial Number" value={<span className="font-mono">{terminal.serial_number}</span>} />
+              <DetailRow
+                label="Status"
+                value={
+                  <StatusBadge
+                    status={terminal.status === 'active' ? 'online' : terminal.status === 'revoked' ? 'revoked' : 'offline'}
+                    size="sm"
+                  />
+                }
+              />
+              <DetailRow label="Created" value={formatDate(terminal.created_at)} />
+              {terminal.assigned_at && (
+                <DetailRow label="Assigned On" value={formatDate(terminal.assigned_at)} />
+              )}
             </DetailCard>
+
             <DetailCard title="Agent Information">
-              <DetailRow label="Agent" value={mockTerminal.agent} />
-              <DetailRow label="Agent ID" value={mockTerminal.agentId} />
+              {terminal.agent ? (
+                <>
+                  <DetailRow label="Business Name" value={terminal.agent.business_name} />
+                  <DetailRow label="Agent Code" value={terminal.agent.code} />
+                  {terminal.agent.contact_name && (
+                    <DetailRow label="Contact Name" value={terminal.agent.contact_name} />
+                  )}
+                  {terminal.agent.contact_phone && (
+                    <DetailRow label="Contact Phone" value={terminal.agent.contact_phone} />
+                  )}
+                  {terminal.agent.contact_email && (
+                    <DetailRow label="Contact Email" value={terminal.agent.contact_email} />
+                  )}
+                </>
+              ) : (
+                <p className="text-muted-foreground">No agent assigned</p>
+              )}
             </DetailCard>
           </div>
+
+          <DetailCard title="Monthly Performance">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Transactions</p>
+                <p className="text-2xl font-bold">{stats?.this_month.transactions || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Volume</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats?.this_month.volume)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Success Rate</p>
+                <p className="text-2xl font-bold">
+                  {stats?.this_month.transactions
+                    ? `${Math.round((stats.this_month.successful / stats.this_month.transactions) * 100)}%`
+                    : '0%'}
+                </p>
+              </div>
+            </div>
+          </DetailCard>
+
+          {stats?.last_transaction && (
+            <DetailCard title="Last Transaction">
+              <DetailRow label="Transaction ID" value={<span className="font-mono">{stats.last_transaction.tran_id}</span>} />
+              <DetailRow label="Amount" value={formatCurrency(stats.last_transaction.amount)} />
+              <DetailRow
+                label="Status"
+                value={<StatusBadge status={stats.last_transaction.status === 'success' ? 'online' : 'offline'} size="sm" />}
+              />
+              <DetailRow label="Date" value={formatDate(stats.last_transaction.created_at)} />
+            </DetailCard>
+          )}
         </TabsContent>
 
-        <TabsContent value="transactions">
-          <DataTable columns={transactionColumns} data={mockTransactions} emptyMessage="No transactions" />
-        </TabsContent>
+        <TabsContent value="transactions" className="space-y-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:flex-wrap">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-muted-foreground">Start Date</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-44"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-muted-foreground">End Date</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-44"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-muted-foreground">Type</label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                    <SelectItem value="transfer">Transfer</SelectItem>
+                    <SelectItem value="purchase">Purchase</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-muted-foreground">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="success">Success</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end flex-1">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs text-muted-foreground">Min Amount</label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={minAmount}
+                    onChange={(e) => setMinAmount(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs text-muted-foreground">Max Amount</label>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={maxAmount}
+                    onChange={(e) => setMaxAmount(e.target.value)}
+                    className="w-32"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  <label className="text-xs text-muted-foreground">Search</label>
+                  <Input
+                    placeholder="Search by reference or narration..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleExportTransactions} variant="outline" className="self-end">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
 
-        <TabsContent value="activity">
-          <DataTable columns={activityColumns} data={mockActivityLog} emptyMessage="No activity" />
+          {transactionSummary && (
+            <div className="grid gap-4 md:grid-cols-3 p-4 bg-muted rounded-lg">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Count</p>
+                <p className="text-lg font-semibold">{transactionSummary.total_count}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Amount</p>
+                <p className="text-lg font-semibold">{formatCurrency(transactionSummary.total_amount)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Fees</p>
+                <p className="text-lg font-semibold">{formatCurrency(transactionSummary.total_fees)}</p>
+              </div>
+            </div>
+          )}
+
+          <DataTable
+            columns={transactionColumns}
+            data={transactions}
+            emptyMessage={loadingTransactions ? 'Loading transactions...' : 'No transactions found'}
+          />
+
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={totalItems}
+            pageSize={pageSize}
+          />
         </TabsContent>
       </Tabs>
 
-      <ConfirmDialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen} title="Revoke Terminal" description={`Are you sure you want to revoke ${mockTerminal.id}?`} confirmLabel="Revoke" variant="destructive" onConfirm={handleRevoke} />
-      <ConfirmDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen} title="Suspend Terminal" description={`Are you sure you want to suspend ${mockTerminal.id}?`} confirmLabel="Suspend" variant="destructive" onConfirm={handleSuspend} />
+      <ConfirmDialog
+        open={toggleDialogOpen}
+        onOpenChange={setToggleDialogOpen}
+        title={terminal.status === 'active' ? 'Deactivate Terminal' : 'Activate Terminal'}
+        description={`Are you sure you want to ${terminal.status === 'active' ? 'deactivate' : 'activate'} ${terminal.terminal_id}?`}
+        confirmLabel={terminal.status === 'active' ? 'Deactivate' : 'Activate'}
+        variant={terminal.status === 'active' ? 'destructive' : 'default'}
+        onConfirm={handleToggleStatus}
+      />
+
+      <ConfirmDialog
+        open={unassignDialogOpen}
+        onOpenChange={setUnassignDialogOpen}
+        title="Unassign Terminal"
+        description={`Are you sure you want to unassign ${terminal.terminal_id} from ${terminal.agent?.business_name}? The terminal balance must be zero to proceed.`}
+        confirmLabel="Unassign"
+        variant="destructive"
+        onConfirm={handleUnassign}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ChooseAccount from "./pages/ChooseAccount";
+import ChangePassword from "./pages/ChangePassword";
 import Dashboard from "./pages/Dashboard";
 
 // Partner pages - Agents
@@ -23,6 +24,10 @@ import KycReview from "./pages/agents/KycReview";
 // Agent KYC pages
 import KycOnboarding from "./pages/agent/KycOnboarding";
 import KycPending from "./pages/agent/KycPending";
+
+// Partner KYC pages
+import PartnerKycOnboarding from "./pages/partners/KycOnboarding";
+import PartnerKycPending from "./pages/partners/KycPending";
 
 // Partner pages - Terminals
 import TerminalsList from "./pages/terminals/TerminalsList";
@@ -69,8 +74,11 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/choose-account" element={<ChooseAccount />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/kyc-onboarding" element={<KycOnboarding />} />
             <Route path="/kyc-pending" element={<KycPending />} />
+            <Route path="/partner-kyc-onboarding" element={<PartnerKycOnboarding />} />
+            <Route path="/partner-kyc-pending" element={<PartnerKycPending />} />
             {/* Dashboard routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -79,9 +87,8 @@ const App = () => (
               <Route path="/agents" element={<AgentsList />} />
               <Route path="/agents/new" element={<AddAgent />} />
               <Route path="/agents/kyc-review" element={<KycReviewList />} />
+              <Route path="/agents/kyc-review/:id" element={<KycReview />} />
               <Route path="/agents/:id" element={<AgentDetails />} />
-              <Route path="/agents/:id/edit" element={<EditAgent />} />
-              <Route path="/agents/:id/kyc-review" element={<KycReview />} />
               <Route path="/agents/:id/edit" element={<EditAgent />} />
               
               {/* Partner routes - Terminals */}

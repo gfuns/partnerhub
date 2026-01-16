@@ -6,12 +6,18 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, authState, branding } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+      <div 
+        className="flex h-screen items-center justify-center"
+        style={{ backgroundColor: branding.body_bg_color }}
+      >
+        <div 
+          className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
+          style={{ borderColor: branding.primary_color, borderTopColor: 'transparent' }}
+        />
       </div>
     );
   }
@@ -20,23 +26,33 @@ export function DashboardLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  // KYC-based redirects for agents
-  if (user?.role === 'agent' && user?.kycStatus) {
+  // Check if agent requires KYC onboarding
+  if (user?.requiresKycOnboarding || authState.requiresKycOnboarding) {
+    return <Navigate to="/kyc-onboarding" replace />;
+  }
+
+  // KYC-based redirects for agents with specific statuses
+  if (user?.role?.startsWith('agent') && user?.kycStatus) {
     switch (user.kycStatus) {
       case 'pending_onboarding':
         return <Navigate to="/kyc-onboarding" replace />;
       case 'pending_review':
         return <Navigate to="/kyc-pending?status=pending_review" replace />;
+      case 'in_review':
+        return <Navigate to="/kyc-pending?status=in_review" replace />;
       case 'rejected':
         return <Navigate to="/kyc-pending?status=rejected" replace />;
       case 'suspended':
         return <Navigate to="/kyc-pending?status=suspended" replace />;
-      // 'approved' status allows normal dashboard access
+      // Only 'approved' status allows normal dashboard access
     }
   }
 
   return (
-    <div className="flex h-screen w-full bg-background">
+    <div 
+      className="flex h-screen w-full"
+      style={{ backgroundColor: branding.body_bg_color }}
+    >
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar onMenuClick={() => setSidebarOpen(true)} />

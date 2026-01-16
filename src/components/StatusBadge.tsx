@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended';
+type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -40,6 +40,16 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     text: 'text-warning',
     dot: 'bg-warning',
   },
+  pending_onboarding: {
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-600',
+    dot: 'bg-orange-500',
+  },
+  in_review: {
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-600',
+    dot: 'bg-blue-500',
+  },
   warning: {
     bg: 'bg-warning/10',
     text: 'text-warning',
@@ -65,6 +75,21 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     text: 'text-destructive',
     dot: 'bg-destructive',
   },
+  approved: {
+    bg: 'bg-success/10',
+    text: 'text-success',
+    dot: 'bg-success',
+  },
+  rejected: {
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    dot: 'bg-destructive',
+  },
+  pending_review: {
+    bg: 'bg-destructive/10',
+    text: 'text-destructive',
+    dot: 'bg-destructive',
+  },
 };
 
 const statusLabels: Record<StatusType, string> = {
@@ -73,17 +98,22 @@ const statusLabels: Record<StatusType, string> = {
   offline: 'Offline',
   disabled: 'Disabled',
   pending: 'Pending',
+  pending_onboarding: 'Pending Onboarding',
+  in_review: 'In Review',
   success: 'Success',
   error: 'Failed',
   failed: 'Failed',
   warning: 'Warning',
   suspended: 'Suspended',
   revoked: 'Revoked',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  pending_review: 'Pending Review'
 };
 
 export function StatusBadge({ status, label, showDot = true, size = 'md' }: StatusBadgeProps) {
-  const styles = statusStyles[status];
-  const displayLabel = label || statusLabels[status];
+  const styles = statusStyles[status] || statusStyles.pending; // Fallback to pending if status is unknown
+  const displayLabel = label || statusLabels[status] || status; // Show raw status if no label
 
   return (
     <span

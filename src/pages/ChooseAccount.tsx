@@ -6,29 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 function getRoleIcon(role: string) {
-  switch (role) {
-    case 'partner_admin':
+  if (role.startsWith('partner')) {
+    if (role.includes('owner') || role.includes('admin')) {
       return <Building2 className="h-5 w-5" />;
-    case 'partner_staff':
-      return <Briefcase className="h-5 w-5" />;
-    case 'agent':
-      return <User className="h-5 w-5" />;
-    default:
-      return <User className="h-5 w-5" />;
+    }
+    return <Briefcase className="h-5 w-5" />;
   }
+  return <User className="h-5 w-5" />;
 }
 
 function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'outline' {
-  switch (role) {
-    case 'partner_admin':
+  if (role.startsWith('partner')) {
+    if (role.includes('owner') || role.includes('admin')) {
       return 'default';
-    case 'partner_staff':
-      return 'secondary';
-    case 'agent':
-      return 'outline';
-    default:
-      return 'secondary';
+    }
+    return 'secondary';
   }
+  return 'outline';
 }
 
 export default function ChooseAccount() {
@@ -46,9 +40,9 @@ export default function ChooseAccount() {
     return <Navigate to="/login" replace />;
   }
 
-  const handleSelectContext = (context: AccountContext) => {
+  const handleSelectContext = async (context: AccountContext) => {
     try {
-      selectContext(context);
+      await selectContext(context.id);
       toast({
         title: 'Welcome back!',
         description: `Signed in as ${context.roleLabel} at ${context.partnerName}`,

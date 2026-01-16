@@ -6,40 +6,31 @@ import { FormSection } from '@/components/FormSection';
 import { FormField } from '@/components/FormField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { agentsService, Agent, UpdateAgentRequest } from '@/services/api/agents.service';
 
 interface FormData {
-  businessName: string;
-  businessAddress: string;
-  businessPhone: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  isActive: boolean;
+  business_name: string;
+  contact_name: string;
+  contact_email: string;
+  contact_phone: string;
+  address: string;
+  city: string;
+  state: string;
+  lga: string;
 }
 
 interface FormErrors {
-  businessName?: string;
-  businessPhone?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
+  business_name?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
 }
-
-// Mock agent data
-const mockAgent: FormData = {
-  businessName: 'ABC Enterprises',
-  businessAddress: '123 Main Street, Lagos',
-  businessPhone: '+234 801 234 5678',
-  contactName: 'John Doe',
-  contactEmail: 'john@abcent.com',
-  contactPhone: '+234 802 345 6789',
-  isActive: true,
-};
 
 export default function EditAgent() {
   const { id } = useParams();
@@ -48,45 +39,76 @@ export default function EditAgent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    businessName: '',
-    businessAddress: '',
-    businessPhone: '',
-    contactName: '',
-    contactEmail: '',
-    contactPhone: '',
-    isActive: true,
+    business_name: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    address: '',
+    city: '',
+    state: '',
+    lga: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    // Simulate fetching agent data
-    const fetchAgent = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setFormData(mockAgent);
-      setIsLoading(false);
-    };
-    fetchAgent();
+    if (id) {
+      fetchAgent();
+    }
   }, [id]);
+
+  const fetchAgent = async () => {
+    try {
+      setIsLoading(true);
+      const response = await agentsService.getAgent(Number(id));
+      const agent = response.data.agent;
+      
+      setFormData({
+        business_name: agent.business_name,
+        contact_name: agent.contact_name,
+        contact_email: agent.contact_email,
+        contact_phone: agent.contact_phone,
+        address: agent.address,
+        city: agent.city,
+        state: agent.state,
+        lga: agent.lga || '',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load agent details',
+        variant: 'destructive',
+      });
+      navigate('/agents');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.businessName.trim()) {
-      newErrors.businessName = 'Business name is required';
+    if (!formData.business_name.trim()) {
+      newErrors.business_name = 'Business name is required';
     }
-    if (!formData.businessPhone.trim()) {
-      newErrors.businessPhone = 'Business phone is required';
+    if (!formData.contact_name.trim()) {
+      newErrors.contact_name = 'Contact name is required';
     }
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = 'Contact name is required';
+    if (!formData.contact_email.trim()) {
+      newErrors.contact_email = 'Contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
+      newErrors.contact_email = 'Invalid email format';
     }
-    if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = 'Contact email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-      newErrors.contactEmail = 'Invalid email format';
+    if (!formData.contact_phone.trim()) {
+      newErrors.contact_phone = 'Contact phone is required';
     }
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = 'Contact phone is required';
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!formData.state.trim()) {
+      newErrors.state = 'State is required';
     }
 
     setErrors(newErrors);
@@ -100,18 +122,35 @@ export default function EditAgent() {
 
     setIsSubmitting(true);
     
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const updateData: UpdateAgentRequest = {
+        business_name: formData.business_name,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        lga: formData.lga || undefined,
+      };
 
-    toast({
-      title: 'Agent updated successfully',
-      description: `${formData.businessName} has been updated.`,
-    });
+      await agentsService.updateAgent(Number(id), updateData);
 
-    navigate(`/agents/${id}`);
-    setIsSubmitting(false);
+      toast({
+        title: 'Success',
+        description: 'Agent updated successfully',
+      });
+
+      navigate(`/agents/${id}`);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update agent',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const updateField = (field: keyof FormData, value: string | boolean) => {
+  const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -162,24 +201,45 @@ export default function EditAgent() {
           <Card>
             <CardContent className="pt-6">
               <FormSection title="Business Information">
-                <FormField label="Business Name" required error={errors.businessName}>
+                <FormField label="Business Name" required error={errors.business_name}>
                   <Input
-                    value={formData.businessName}
-                    onChange={(e) => updateField('businessName', e.target.value)}
+                    value={formData.business_name}
+                    onChange={(e) => updateField('business_name', e.target.value)}
+                    placeholder="Enter business name"
                   />
                 </FormField>
 
-                <FormField label="Business Address">
+                <FormField label="Address" required error={errors.address}>
                   <Input
-                    value={formData.businessAddress}
-                    onChange={(e) => updateField('businessAddress', e.target.value)}
+                    value={formData.address}
+                    onChange={(e) => updateField('address', e.target.value)}
+                    placeholder="Enter business address"
                   />
                 </FormField>
 
-                <FormField label="Business Phone" required error={errors.businessPhone}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="City" required error={errors.city}>
+                    <Input
+                      value={formData.city}
+                      onChange={(e) => updateField('city', e.target.value)}
+                      placeholder="Enter city"
+                    />
+                  </FormField>
+
+                  <FormField label="State" required error={errors.state}>
+                    <Input
+                      value={formData.state}
+                      onChange={(e) => updateField('state', e.target.value)}
+                      placeholder="Enter state"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="LGA (Local Government Area)">
                   <Input
-                    value={formData.businessPhone}
-                    onChange={(e) => updateField('businessPhone', e.target.value)}
+                    value={formData.lga}
+                    onChange={(e) => updateField('lga', e.target.value)}
+                    placeholder="Enter LGA (optional)"
                   />
                 </FormField>
               </FormSection>
@@ -188,47 +248,28 @@ export default function EditAgent() {
 
           <Card>
             <CardContent className="pt-6">
-              <FormSection title="Contact Person">
-                <FormField label="Contact Name" required error={errors.contactName}>
+              <FormSection title="Contact Information" description="Contact details cannot be modified here">
+                <FormField label="Contact Name" required>
                   <Input
-                    value={formData.contactName}
-                    onChange={(e) => updateField('contactName', e.target.value)}
+                    value={formData.contact_name}
+                    disabled
                   />
                 </FormField>
 
-                <FormField label="Contact Email" required error={errors.contactEmail}>
+                <FormField label="Contact Email" required>
                   <Input
                     type="email"
-                    value={formData.contactEmail}
-                    onChange={(e) => updateField('contactEmail', e.target.value)}
+                    value={formData.contact_email}
+                    disabled
                   />
                 </FormField>
 
-                <FormField label="Contact Phone" required error={errors.contactPhone}>
+                <FormField label="Contact Phone" required>
                   <Input
-                    value={formData.contactPhone}
-                    onChange={(e) => updateField('contactPhone', e.target.value)}
+                    value={formData.contact_phone}
+                    disabled
                   />
                 </FormField>
-              </FormSection>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <FormSection title="Status">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Active</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable this agent to process transactions
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) => updateField('isActive', checked)}
-                  />
-                </div>
               </FormSection>
             </CardContent>
           </Card>

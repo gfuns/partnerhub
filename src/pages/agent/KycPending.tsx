@@ -25,12 +25,12 @@ export default function KycPending() {
   }
 
   // Redirect approved agents to dashboard
-  if (user?.role === 'agent' && user?.kycStatus === 'approved') {
+  if (user?.role?.startsWith('agent') && user?.kycStatus === 'approved') {
     return <Navigate to="/dashboard" replace />;
   }
 
   // Redirect pending_onboarding to KYC wizard
-  if (user?.role === 'agent' && user?.kycStatus === 'pending_onboarding') {
+  if (user?.role?.startsWith('agent') && (user?.kycStatus === 'pending_onboarding' || user?.requiresKycOnboarding)) {
     return <Navigate to="/kyc-onboarding" replace />;
   }
 

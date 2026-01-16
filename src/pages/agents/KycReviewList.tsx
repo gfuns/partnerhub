@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Eye, FileCheck, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Search, FileCheck, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { ActionButton } from '@/components/ActionButton';
 import { TablePagination } from '@/components/TablePagination';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -14,211 +15,235 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { KycStatus, AgentWithKyc } from '@/types/kyc';
-
-const mockAgentsWithKyc: AgentWithKyc[] = [
-  {
-    id: '1',
-    businessName: 'ABC Enterprises',
-    contactName: 'John Doe',
-    phone: '+234 801 234 5678',
-    email: 'john@abc.com',
-    terminals: 0,
-    kycStatus: 'pending_review',
-    kycSubmission: {
-      businessType: 'registered_business',
-      fullName: 'John Doe',
-      phoneNumber: '+234 801 234 5678',
-      email: 'john@abc.com',
-      businessName: 'ABC Enterprises',
-      cacNumber: 'RC123456',
-      directorIdUrl: 'https://storage.example.com/id.pdf',
-      businessAddressProofUrl: 'https://storage.example.com/address.pdf',
-      declarationAccepted: true,
-      submittedAt: '2024-01-15T10:30:00Z',
-    },
-    createdAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    businessName: 'Quick Mart',
-    contactName: 'Mike Johnson',
-    phone: '+234 803 456 7890',
-    email: 'mike@quickmart.com',
-    terminals: 0,
-    kycStatus: 'pending_onboarding',
-    createdAt: '2024-01-14',
-  },
-  {
-    id: '3',
-    businessName: 'XYZ Holdings',
-    contactName: 'Jane Smith',
-    phone: '+234 802 345 6789',
-    email: 'jane@xyz.com',
-    terminals: 5,
-    kycStatus: 'approved',
-    createdAt: '2024-01-10',
-  },
-  {
-    id: '4',
-    businessName: 'Delta Services',
-    contactName: 'Sarah Brown',
-    phone: '+234 804 567 8901',
-    email: 'sarah@delta.com',
-    terminals: 0,
-    kycStatus: 'rejected',
-    rejectionReason: 'Invalid business registration documents',
-    createdAt: '2024-01-08',
-  },
-  {
-    id: '5',
-    businessName: 'Prime Store',
-    contactName: 'David Wilson',
-    phone: '+234 805 678 9012',
-    email: 'david@prime.com',
-    terminals: 0,
-    kycStatus: 'pending_review',
-    kycSubmission: {
-      businessType: 'individual_trader',
-      fullName: 'David Wilson',
-      phoneNumber: '+234 805 678 9012',
-      email: 'david@prime.com',
-      governmentIdUrl: 'https://storage.example.com/id.pdf',
-      passportPhotoUrl: 'https://storage.example.com/photo.jpg',
-      declarationAccepted: true,
-      submittedAt: '2024-01-12T14:20:00Z',
-    },
-    createdAt: '2024-01-12',
-  },
-];
-
-const KYC_STATUS_CONFIG: Record<KycStatus, { label: string; icon: React.ElementType; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pending_onboarding: { label: 'Pending Onboarding', icon: Clock, variant: 'secondary' },
-  pending_review: { label: 'Pending Review', icon: FileCheck, variant: 'default' },
-  approved: { label: 'Approved', icon: CheckCircle, variant: 'outline' },
-  rejected: { label: 'Rejected', icon: XCircle, variant: 'destructive' },
-  suspended: { label: 'Suspended', icon: AlertTriangle, variant: 'destructive' },
-};
-
-function KycStatusBadge({ status }: { status: KycStatus }) {
-  const config = KYC_STATUS_CONFIG[status];
-  const Icon = config.icon;
-  
-  return (
-    <Badge variant={config.variant} className="gap-1">
-      <Icon className="h-3 w-3" />
-      {config.label}
-    </Badge>
-  );
-}
+import { useToast } from '@/hooks/use-toast';
+import { kycService } from '@/services/api/kyc.service';
+import { KycSubmissionListItem, KycReviewStatus, KYC_REVIEW_STATUS_CONFIG, BusinessType } from '@/types/kyc';
 
 export default function KycReviewList() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [submissions, setSubmissions] = useState<KycSubmissionListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const filteredAgents = mockAgentsWithKyc.filter((agent) => {
-    const matchesSearch =
-      agent.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || agent.kycStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    fetchSubmissions();
+  }, [currentPage, pageSize, searchQuery, statusFilter, businessTypeFilter]);
 
-  const totalPages = Math.ceil(filteredAgents.length / pageSize);
-  const paginatedAgents = filteredAgents.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const fetchSubmissions = async () => {
+    try {
+      setIsLoading(true);
+      const response = await kycService.getSubmissions({
+        page: currentPage,
+        per_page: pageSize,
+        search: searchQuery || undefined,
+        status: statusFilter !== 'all' ? (statusFilter as KycReviewStatus) : undefined,
+        business_type: businessTypeFilter !== 'all' ? (businessTypeFilter as BusinessType) : undefined,
+      });
+      
+      setSubmissions(response.data || []);
+      setTotalItems(response.meta.total || 0);
+      setTotalPages(response.meta.last_page || 0);
+    } catch (error) {
+      setSubmissions([]);
+      setTotalItems(0);
+      setTotalPages(0);
+      toast({
+        title: 'Error',
+        description: 'Failed to load KYC submissions',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getBusinessTypeLabel = (type: BusinessType) => {
+    const labels: Record<BusinessType, string> = {
+      individual: 'Individual',
+      sme: 'SME',
+      corporate: 'Corporate',
+    };
+    return labels[type] || type;
+  };
 
   const columns = [
     {
-      key: 'businessName',
-      header: 'Business Name',
-      render: (item: AgentWithKyc) => (
-        <span className="font-medium">{item.businessName}</span>
+      key: 'agent_code',
+      header: 'Agent Code',
+      render: (item: KycSubmissionListItem) => (
+        <span className="font-mono text-sm">{item.agent.code}</span>
       ),
     },
-    { key: 'contactName', header: 'Contact Person' },
-    { key: 'email', header: 'Email' },
     {
-      key: 'kycStatus',
-      header: 'KYC Status',
-      render: (item: AgentWithKyc) => <KycStatusBadge status={item.kycStatus} />,
+      key: 'business_name',
+      header: 'Business Name',
+      render: (item: KycSubmissionListItem) => (
+        <span className="font-medium">{item.agent.business_name}</span>
+      ),
     },
-    { key: 'createdAt', header: 'Created' },
+    {
+      key: 'business_type',
+      header: 'Business Type',
+      render: (item: KycSubmissionListItem) => (
+        <Badge variant="outline" className="capitalize">
+          {getBusinessTypeLabel(item.business_type)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'documents',
+      header: 'Documents',
+      render: (item: KycSubmissionListItem) => {
+        const totalDocs = item.documents.length;
+        const uploadedDocs = item.documents.filter(d => d.status !== 'not_uploaded').length;
+        return (
+          <div className="flex items-center gap-1">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              {uploadedDocs}/{totalDocs}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item: KycSubmissionListItem) => {
+        // Derive status from submission data if not provided
+        const status = item.status || (item.submitted_at ? 'submitted' : 'pending') as KycReviewStatus;
+        const config = KYC_REVIEW_STATUS_CONFIG[status] || {
+          label: 'Unknown',
+          variant: 'secondary',
+          description: 'Unknown status',
+        };
+        return (
+          <Badge variant={config.variant as any} className="capitalize">
+            {config.label}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'submitted_at',
+      header: 'Submitted',
+      render: (item: KycSubmissionListItem) => (
+        <span className="text-sm">
+          {new Date(item.submitted_at).toLocaleDateString()}
+        </span>
+      ),
+    },
     {
       key: 'actions',
       header: '',
-      className: 'w-24',
-      render: (item: AgentWithKyc) => (
-        <div className="flex items-center gap-1">
-          {item.kycStatus === 'pending_review' && (
+      className: 'w-32',
+      render: (item: KycSubmissionListItem) => {
+        const status = item.status || (item.submitted_at ? 'submitted' : 'pending') as KycReviewStatus;
+        return (
+          <div className="flex items-center gap-1">
             <ActionButton
               icon={FileCheck}
-              label="Review KYC"
-              onClick={() => navigate(`/agents/${item.id}/kyc-review`)}
+              label={status === 'submitted' ? 'Start Review' : 'View Review'}
+              onClick={() => navigate(`/agents/kyc-review/${item.id}`)}
             />
-          )}
-          <ActionButton
-            icon={Eye}
-            label="View Agent"
-            onClick={() => navigate(`/agents/${item.id}`)}
-          />
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
-  const pendingReviewCount = mockAgentsWithKyc.filter(a => a.kycStatus === 'pending_review').length;
+  const displayCount = statusFilter !== 'all' 
+    ? `${totalItems} ${statusFilter.replace('_', ' ')} submission${totalItems !== 1 ? 's' : ''}` 
+    : `${totalItems} submission${totalItems !== 1 ? 's' : ''}`;
+
+  if (isLoading && submissions.length === 0) {
+    return (
+      <div>
+        <PageHeader
+          title="KYC Review"
+          description="Review and approve agent KYC applications."
+        />
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <Skeleton className="h-10 w-80" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader
         title="KYC Review"
-        description={`Review and approve agent KYC applications. ${pendingReviewCount} pending review.`}
+        description={`Review and approve agent KYC applications. ${displayCount}.`}
       />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search agents..."
+            placeholder="Search by agent code or business name..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(value) => {
+          setStatusFilter(value);
+          setCurrentPage(1);
+        }}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="KYC Status" />
+            <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending_onboarding">Pending Onboarding</SelectItem>
-            <SelectItem value="pending_review">Pending Review</SelectItem>
+            <SelectItem value="submitted">Submitted</SelectItem>
+            <SelectItem value="under_review">Under Review</SelectItem>
+            <SelectItem value="needs_correction">Needs Correction</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="suspended">Suspended</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={businessTypeFilter} onValueChange={(value) => {
+          setBusinessTypeFilter(value);
+          setCurrentPage(1);
+        }}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Business Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Business Types</SelectItem>
+            <SelectItem value="individual">Individual</SelectItem>
+            <SelectItem value="sme">SME</SelectItem>
+            <SelectItem value="corporate">Corporate</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <DataTable
         columns={columns}
-        data={paginatedAgents}
-        emptyMessage="No agents found"
+        data={submissions}
+        emptyMessage="No KYC submissions found"
       />
 
       <TablePagination
         currentPage={currentPage}
         totalPages={totalPages}
         pageSize={pageSize}
-        totalItems={filteredAgents.length}
+        totalItems={totalItems}
         onPageChange={setCurrentPage}
         onPageSizeChange={(size) => {
           setPageSize(size);

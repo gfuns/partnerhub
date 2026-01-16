@@ -6,26 +6,33 @@ import { FormSection } from '@/components/FormSection';
 import { FormField } from '@/components/FormField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { agentsService, CreateAgentRequest } from '@/services/api';
+import { toast as sonnerToast } from 'sonner';
 
-interface FormData {
-  businessName: string;
-  businessAddress: string;
-  businessPhone: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-}
+interface FormData extends CreateAgentRequest {}
 
 interface FormErrors {
-  businessName?: string;
-  businessPhone?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
+  business_name?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  owner_first_name?: string;
+  owner_last_name?: string;
+  owner_email?: string;
+  owner_phone?: string;
 }
 
 export default function AddAgent() {
@@ -33,34 +40,46 @@ export default function AddAgent() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
-    businessName: '',
-    businessAddress: '',
-    businessPhone: '',
-    contactName: '',
-    contactEmail: '',
-    contactPhone: '',
+    business_name: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    address: '',
+    city: '',
+    state: '',
+    lga: '',
+    owner_first_name: '',
+    owner_last_name: '',
+    owner_email: '',
+    owner_phone: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.businessName.trim()) {
-      newErrors.businessName = 'Business name is required';
+    if (!formData.business_name?.trim()) {
+      newErrors.business_name = 'Business name is required';
     }
-    if (!formData.businessPhone.trim()) {
-      newErrors.businessPhone = 'Business phone is required';
+    if (!formData.contact_name?.trim()) {
+      newErrors.contact_name = 'Contact name is required';
     }
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = 'Contact name is required';
+    if (!formData.contact_email?.trim()) {
+      newErrors.contact_email = 'Contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
+      newErrors.contact_email = 'Invalid email format';
     }
-    if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = 'Contact email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-      newErrors.contactEmail = 'Invalid email format';
+    if (!formData.contact_phone?.trim()) {
+      newErrors.contact_phone = 'Contact phone is required';
     }
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = 'Contact phone is required';
+    if (!formData.address?.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    if (!formData.city?.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!formData.state?.trim()) {
+      newErrors.state = 'State is required';
     }
 
     setErrors(newErrors);
@@ -74,20 +93,24 @@ export default function AddAgent() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast({
-      title: 'Agent created successfully',
-      description: `${formData.businessName} has been added with KYC status: Pending Onboarding.`,
-    });
-
-    // Navigate to agents list
-    navigate('/agents');
-    setIsSubmitting(false);
+    try {
+      const response = await agentsService.createAgent(formData);
+      sonnerToast.success(response.message);
+      navigate('/agents');
+    } catch (error: any) {
+      const apiErrors = error.errors;
+      if (apiErrors) {
+        setErrors(apiErrors);
+      }
+      sonnerToast.error('Failed to create agent', {
+        description: error.message || 'Please check the form and try again',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const updateField = (field: keyof FormData, value: string | boolean) => {
+  const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -112,27 +135,70 @@ export default function AddAgent() {
           <Card>
             <CardContent className="pt-6">
               <FormSection title="Business Information" description="Enter the agent's business details.">
-                <FormField label="Business Name" required error={errors.businessName}>
+                <FormField label="Business Name" required error={errors.business_name}>
                   <Input
-                    value={formData.businessName}
-                    onChange={(e) => updateField('businessName', e.target.value)}
+                    value={formData.business_name}
+                    onChange={(e) => updateField('business_name', e.target.value)}
                     placeholder="Enter business name"
                   />
                 </FormField>
 
-                <FormField label="Business Address">
+                <FormField label="Contact Name" required error={errors.contact_name}>
                   <Input
-                    value={formData.businessAddress}
-                    onChange={(e) => updateField('businessAddress', e.target.value)}
+                    value={formData.contact_name}
+                    onChange={(e) => updateField('contact_name', e.target.value)}
+                    placeholder="Enter contact person name"
+                  />
+                </FormField>
+
+                <FormField label="Contact Email" required error={errors.contact_email}>
+                  <Input
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => updateField('contact_email', e.target.value)}
+                    placeholder="contact@example.com"
+                  />
+                </FormField>
+
+                <FormField label="Contact Phone" required error={errors.contact_phone}>
+                  <Input
+                    value={formData.contact_phone}
+                    onChange={(e) => updateField('contact_phone', e.target.value)}
+                    placeholder="+234 XXX XXX XXXX"
+                  />
+                </FormField>
+
+                <FormField label="Business Address" required error={errors.address}>
+                  <Input
+                    value={formData.address}
+                    onChange={(e) => updateField('address', e.target.value)}
                     placeholder="Enter business address"
                   />
                 </FormField>
 
-                <FormField label="Business Phone" required error={errors.businessPhone}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="City" required error={errors.city}>
+                    <Input
+                      value={formData.city}
+                      onChange={(e) => updateField('city', e.target.value)}
+                      placeholder="Enter city"
+                    />
+                  </FormField>
+
+                  <FormField label="State" required error={errors.state}>
+                    <Input
+                      value={formData.state}
+                      onChange={(e) => updateField('state', e.target.value)}
+                      placeholder="Enter state"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="LGA" error={errors.lga}>
                   <Input
-                    value={formData.businessPhone}
-                    onChange={(e) => updateField('businessPhone', e.target.value)}
-                    placeholder="+234 XXX XXX XXXX"
+                    value={formData.lga}
+                    onChange={(e) => updateField('lga', e.target.value)}
+                    placeholder="Enter LGA (optional)"
                   />
                 </FormField>
               </FormSection>
@@ -141,29 +207,39 @@ export default function AddAgent() {
 
           <Card>
             <CardContent className="pt-6">
-              <FormSection title="Contact Person" description="Primary contact for this agent.">
-                <FormField label="Contact Name" required error={errors.contactName}>
-                  <Input
-                    value={formData.contactName}
-                    onChange={(e) => updateField('contactName', e.target.value)}
-                    placeholder="Enter contact name"
-                  />
-                </FormField>
+              <FormSection title="Owner Information (Optional)" description="Additional owner details. If not provided, contact information will be used.">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="First Name" error={errors.owner_first_name}>
+                    <Input
+                      value={formData.owner_first_name}
+                      onChange={(e) => updateField('owner_first_name', e.target.value)}
+                      placeholder="Enter first name (optional)"
+                    />
+                  </FormField>
 
-                <FormField label="Contact Email" required error={errors.contactEmail}>
+                  <FormField label="Last Name" error={errors.owner_last_name}>
+                    <Input
+                      value={formData.owner_last_name}
+                      onChange={(e) => updateField('owner_last_name', e.target.value)}
+                      placeholder="Enter last name (optional)"
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Owner Email" error={errors.owner_email}>
                   <Input
                     type="email"
-                    value={formData.contactEmail}
-                    onChange={(e) => updateField('contactEmail', e.target.value)}
-                    placeholder="email@example.com"
+                    value={formData.owner_email}
+                    onChange={(e) => updateField('owner_email', e.target.value)}
+                    placeholder="owner@example.com (optional)"
                   />
                 </FormField>
 
-                <FormField label="Contact Phone" required error={errors.contactPhone}>
+                <FormField label="Owner Phone" error={errors.owner_phone}>
                   <Input
-                    value={formData.contactPhone}
-                    onChange={(e) => updateField('contactPhone', e.target.value)}
-                    placeholder="+234 XXX XXX XXXX"
+                    value={formData.owner_phone}
+                    onChange={(e) => updateField('owner_phone', e.target.value)}
+                    placeholder="+234 XXX XXX XXXX (optional)"
                   />
                 </FormField>
               </FormSection>
