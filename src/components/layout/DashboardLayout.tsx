@@ -26,13 +26,40 @@ export function DashboardLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  // Check if agent requires KYC onboarding
+  // Determine if user is a partner or agent
+  const isPartner = user?.loginType === 'partner';
+  const isAgent = user?.loginType === 'agent' || user?.role?.startsWith('agent');
+
+  // Check if user requires KYC onboarding
   if (user?.requiresKycOnboarding || authState.requiresKycOnboarding) {
-    return <Navigate to="/kyc-onboarding" replace />;
+    if (isPartner) {
+      return <Navigate to="/partner-kyc-onboarding" replace />;
+    } else {
+      return <Navigate to="/kyc-onboarding" replace />;
+    }
+  }
+
+  // KYC-based redirects for partners with specific statuses
+  if (isPartner && user?.kycStatus) {
+    switch (user.kycStatus) {
+      case 'pending_onboarding':
+        return <Navigate to="/partner-kyc-onboarding" replace />;
+      case 'pending_review':
+        return <Navigate to="/partner-kyc-pending?status=pending_review" replace />;
+      case 'in_review':
+        return <Navigate to="/partner-kyc-pending?status=in_review" replace />;
+      case 'pending_correction':
+        return <Navigate to="/partner-kyc-pending?status=pending_correction" replace />;
+      case 'rejected':
+        return <Navigate to="/partner-kyc-pending?status=rejected" replace />;
+      case 'suspended':
+        return <Navigate to="/partner-kyc-pending?status=suspended" replace />;
+      // Only 'approved' status allows normal dashboard access
+    }
   }
 
   // KYC-based redirects for agents with specific statuses
-  if (user?.role?.startsWith('agent') && user?.kycStatus) {
+  if (isAgent && user?.kycStatus) {
     switch (user.kycStatus) {
       case 'pending_onboarding':
         return <Navigate to="/kyc-onboarding" replace />;
@@ -40,6 +67,8 @@ export function DashboardLayout() {
         return <Navigate to="/kyc-pending?status=pending_review" replace />;
       case 'in_review':
         return <Navigate to="/kyc-pending?status=in_review" replace />;
+      case 'pending_correction':
+        return <Navigate to="/kyc-pending?status=pending_correction" replace />;
       case 'rejected':
         return <Navigate to="/kyc-pending?status=rejected" replace />;
       case 'suspended':

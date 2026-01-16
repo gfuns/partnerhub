@@ -122,7 +122,7 @@ export default function ChangePassword() {
         } else {
           // For other statuses, check if KYC onboarding is required
           if (authState.requiresKycOnboarding) {
-            navigate('/partner/kyc-onboarding');
+            navigate('/partner-kyc-onboarding');
           } else {
             navigate('/dashboard');
           }
