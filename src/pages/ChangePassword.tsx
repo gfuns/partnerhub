@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
-  const { user, changePassword, logout, isLoading } = useAuth();
+  const { user, authState, changePassword, logout, isLoading } = useAuth();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -99,7 +99,7 @@ export default function ChangePassword() {
         // Agent users - check KYC status
         const kycStatus = user?.kycStatus;
         
-        if (kycStatus === 'pending_onboarding' || !kycStatus) {
+        if (kycStatus === 'pending_onboarding' || !kycStatus || user?.requiresKycOnboarding) {
           navigate('/kyc-onboarding');
         } else if (kycStatus === 'pending_review' || kycStatus === 'pending_correction') {
           navigate('/kyc-pending');
@@ -109,8 +109,26 @@ export default function ChangePassword() {
           // For other statuses (rejected, etc), go to kyc-pending
           navigate('/kyc-pending');
         }
+      } else if (user?.loginType === 'partner') {
+        // Partner users - check KYC status
+        const kycStatus = user?.kycStatus;
+        
+        if (kycStatus === 'pending_onboarding' || user?.requiresKycOnboarding || authState.requiresKycOnboarding) {
+          navigate('/partner/kyc-onboarding');
+        } else if (kycStatus === 'pending_review' || kycStatus === 'pending_correction') {
+          navigate('/partner/kyc-pending');
+        } else if (kycStatus === 'approved') {
+          navigate('/dashboard');
+        } else {
+          // For other statuses, check if KYC onboarding is required
+          if (authState.requiresKycOnboarding) {
+            navigate('/partner/kyc-onboarding');
+          } else {
+            navigate('/dashboard');
+          }
+        }
       } else {
-        // Partner users - go to dashboard
+        // Default fallback
         navigate('/dashboard');
       }
     } catch (error: any) {
