@@ -371,32 +371,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Check if password change is required
+      // Still store full user data including permissions and context for after password change
       if (requires_password_change) {
-        const tempUser: User = {
-          id: apiUser.id,
-          email: apiUser.email,
-          firstName: apiUser.first_name,
-          lastName: apiUser.last_name,
-          phone: apiUser.phone,
-          avatarUrl: apiUser.avatar_url,
-          role: '',
-          permissions: [],
-          mustChangePassword: true,
-          loginType: response.data.login_type,
-        };
+        // Build full user data even for password change flow
+        let fullUser: User;
         
-        setUser(tempUser);
+        if (selected_context) {
+          const accountContext = convertApiContext(selected_context);
+          
+          // Determine partner info
+          let partnerInfo: Partner | undefined;
+          if (selected_context.partner) {
+            partnerInfo = {
+              id: selected_context.partner.id,
+              name: selected_context.partner.name,
+              logo_url: selected_context.partner.logo_url || undefined,
+              code: selected_context.partner.code,
+            };
+          }
+          
+          // Get KYC status
+          let kycStatus: string | undefined;
+          if (response.data.login_type === 'agent') {
+            kycStatus = selected_context.agent?.kyc_status;
+          } else if (response.data.login_type === 'partner') {
+            kycStatus = response.data.kyc_status || selected_context.partner?.kyc_status;
+          }
+          
+          fullUser = {
+            id: apiUser.id,
+            email: apiUser.email,
+            firstName: apiUser.first_name,
+            lastName: apiUser.last_name,
+            phone: apiUser.phone,
+            avatarUrl: apiUser.avatar_url,
+            role: accountContext.role,
+            permissions: selected_context.permissions || [],
+            mustChangePassword: true,
+            loginType: response.data.login_type,
+            partner: partnerInfo,
+            currentContext: accountContext,
+            requiresKycOnboarding: requires_kyc_onboarding,
+            kycStatus: kycStatus,
+          };
+        } else {
+          // No selected context yet - minimal user
+          fullUser = {
+            id: apiUser.id,
+            email: apiUser.email,
+            firstName: apiUser.first_name,
+            lastName: apiUser.last_name,
+            phone: apiUser.phone,
+            avatarUrl: apiUser.avatar_url,
+            role: '',
+            permissions: [],
+            mustChangePassword: true,
+            loginType: response.data.login_type,
+            requiresKycOnboarding: requires_kyc_onboarding,
+          };
+        }
+        
+        setUser(fullUser);
         setAuthState({
           requiresPasswordChange: true,
           requiresContextSelection: false,
-          requiresKycOnboarding: false,
+          requiresKycOnboarding: requires_kyc_onboarding || false,
         });
         
-        localStorage.setItem('xtrapay_user', JSON.stringify(tempUser));
+        localStorage.setItem('xtrapay_user', JSON.stringify(fullUser));
         localStorage.setItem('xtrapay_auth_state', JSON.stringify({
           requiresPasswordChange: true,
           requiresContextSelection: false,
-          requiresKycOnboarding: false,
+          requiresKycOnboarding: requires_kyc_onboarding || false,
         }));
         
         setIsLoading(false);
@@ -404,7 +450,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           success: true,
           requiresPasswordChange: true,
           requiresContextSelection: false,
-          requiresKycOnboarding: false,
+          requiresKycOnboarding: requires_kyc_onboarding || false,
         };
       }
 
