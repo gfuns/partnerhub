@@ -114,9 +114,9 @@ export default function ChangePassword() {
         const kycStatus = user?.kycStatus;
         
         if (kycStatus === 'pending_onboarding' || user?.requiresKycOnboarding || authState.requiresKycOnboarding) {
-          navigate('/partner/kyc-onboarding');
+          navigate('/partner-kyc-onboarding');
         } else if (kycStatus === 'pending_review' || kycStatus === 'pending_correction') {
-          navigate('/partner/kyc-pending');
+          navigate('/partner-kyc-pending');
         } else if (kycStatus === 'approved') {
           navigate('/dashboard');
         } else {
