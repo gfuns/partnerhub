@@ -17,6 +17,9 @@ export { terminalsService } from './terminals.service';
 export { transactionsService } from './transactions.service';
 export { usersService } from './users.service';
 export { settingsService } from './settings.service';
+export { commissionService, calculateFee, formatMoney } from './commission.service';
+export { walletService } from './wallet.service';
+export { settlementService, calculateSettlementFee } from './settlement.service';
 
 // Export types with explicit naming to avoid conflicts
 export type {
@@ -113,3 +116,62 @@ export type {
   AuditLogResponse,
   AuditLogActionsResponse,
 } from './settings.service';
+
+// Commission types
+export type {
+  CommissionType,
+  ServiceCategory,
+  ServiceType,
+  Commission,
+  PartnerCommission,
+  EffectiveCommission,
+  CommissionListParams,
+  CommissionListResponse,
+  EffectiveCommissionResponse,
+  SetCommissionRequest,
+  BulkSetCommissionRequest,
+  CommissionResponse,
+  BulkCommissionResponse,
+} from './commission.service';
+
+// Wallet types
+export type {
+  Wallet,
+  WalletTransaction,
+  SweepableTerminal,
+  SweepSession,
+  SweepTerminalDetail,
+  SweepConfig,
+  WalletResponse,
+  WalletTransactionsParams,
+  WalletTransactionsResponse,
+  SweepableTerminalsResponse,
+  InitiateSweepRequest,
+  InitiateSweepResponse,
+  SweepSessionsParams,
+  SweepSessionsResponse,
+  SweepConfigResponse,
+  UpdateSweepConfigRequest,
+} from './wallet.service';
+
+// Settlement types
+export type {
+  VerificationStatus,
+  SettlementAccount,
+  SettlementStatus,
+  SettlementRequest,
+  SettlementConfig,
+  Bank,
+  SettlementAccountsResponse,
+  AddSettlementAccountRequest,
+  AddSettlementAccountResponse,
+  ResolveBankAccountRequest,
+  ResolveBankAccountResponse,
+  SettlementRequestsParams,
+  SettlementRequestsResponse,
+  CreateSettlementRequest,
+  CreateSettlementResponse,
+  SettlementConfigResponse,
+  SettlementEligibility,
+  SettlementEligibilityResponse,
+} from './settlement.service';

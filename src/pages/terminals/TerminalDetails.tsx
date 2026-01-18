@@ -15,6 +15,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import terminalsService, { Terminal, TerminalStats, Transaction, TransactionListParams } from '@/services/api/terminals.service';
 import { TablePagination } from '@/components/TablePagination';
+import { commissionService, PartnerCommission, CommissionType } from '@/services/api/commission.service';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 export default function TerminalDetails() {
   const { id } = useParams();
@@ -46,6 +57,16 @@ export default function TerminalDetails() {
   const defaultTab = searchParams.get('tab') || 'overview';
   const pageSize = 15;
 
+  // Terminal-level commissions
+  const [terminalCommissions, setTerminalCommissions] = useState<PartnerCommission[]>([]);
+  const [isCommissionsLoading, setIsCommissionsLoading] = useState(false);
+  const [isEditCommissionOpen, setIsEditCommissionOpen] = useState(false);
+  const [editingCommission, setEditingCommission] = useState<PartnerCommission | null>(null);
+  const [markupType, setMarkupType] = useState<CommissionType>('percentage');
+  const [markupValue, setMarkupValue] = useState<string>('0');
+  const [markupCap, setMarkupCap] = useState<string>('0');
+  const [isSavingCommission, setIsSavingCommission] = useState(false);
+
   useEffect(() => {
     if (id) {
       loadTerminalDetails();
@@ -61,6 +82,10 @@ export default function TerminalDetails() {
   const handleTabChange = (value: string) => {
     if (value === 'transactions' && id && transactions.length === 0) {
       loadTransactions();
+    }
+
+    if (value === 'commissions' && id && terminalCommissions.length === 0) {
+      loadTerminalCommissions();
     }
   };
 
@@ -110,6 +135,158 @@ export default function TerminalDetails() {
       });
     } finally {
       setLoadingTransactions(false);
+    }
+  };
+
+  const loadTerminalCommissions = async () => {
+    if (!id) return;
+    try {
+      setIsCommissionsLoading(true);
+      const response = await commissionService.getTerminalCommissions(id);
+      const apiCommissions = response.data.commissions || [];
+
+      const mapped: PartnerCommission[] = apiCommissions.map((item: any) => {
+        const base = item.xtrapay_commission || {};
+        const pm = item.partner_markup;
+        const tm = item.terminal_markup;
+
+        const baseType: CommissionType = base.type || 'percentage';
+        const pmType: CommissionType = pm?.type || 'percentage';
+        const tmType: CommissionType = tm?.type || pmType;
+
+        const baseValue = Number(base.value) || 0;
+        const baseCap = Number(base.cap) || 0;
+
+        const pmValue = pm ? Number(pm.value) : 0;
+        const pmCap = pm ? Number(pm.cap) : 0;
+
+        const tmValue = tm ? Number(tm.value) : 0;
+        const tmCap = tm ? Number(tm.cap) : 0;
+
+        // If terminal markup exists, it should override partner markup for effective rate
+        const appliedMarkup = item.has_terminal_markup ? tm : pm;
+        const appliedValue = item.has_terminal_markup ? tmValue : pmValue;
+        const appliedCap = item.has_terminal_markup ? tmCap : pmCap;
+        const appliedType = item.has_terminal_markup ? tmType : pmType;
+
+        const effectiveValue = baseType === 'percentage' && appliedMarkup ? baseValue + appliedValue : (baseType === 'flat' ? baseValue + appliedValue : baseValue + appliedValue);
+        const effectiveCap = baseCap + appliedCap;
+
+        return {
+          id: item.service_type?.id ?? Math.random(),
+          service_type_id: item.service_type?.id ?? 0,
+          service_type: item.service_type,
+          xtrapay_base: {
+            type: baseType,
+            value: baseValue,
+            cap: baseCap,
+          },
+          partner_markup: pm
+            ? {
+                type: pmType,
+                value: pmValue,
+                cap: pmCap,
+              }
+            : null,
+          // keep terminal_markup on the object using partner_markup field for UI editing compatibility
+          // but we'll prefer terminal_markup where appropriate
+          partner_markup: pm ? { type: pmType, value: pmValue, cap: pmCap } : null,
+          effective_rate: {
+            type: appliedType || baseType,
+            value: effectiveValue,
+            cap: effectiveCap,
+          },
+          is_active: (tm?.is_active ?? pm?.is_active) ?? true,
+          // attach raw terminal_markup for reference
+          // @ts-ignore - extend shape dynamically
+          terminal_markup: tm ? { type: tmType, value: tmValue, cap: tmCap, is_active: tm.is_active } : null,
+          // also indicate presence boolean (mirrors API)
+          // @ts-ignore
+          has_terminal_markup: Boolean(item.has_terminal_markup),
+        } as PartnerCommission;
+      });
+
+      setTerminalCommissions(mapped);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to load terminal commissions', description: error.message || 'Please try again' });
+    } finally {
+      setIsCommissionsLoading(false);
+    }
+  };
+
+  const openEditCommissionModal = (commission: PartnerCommission) => {
+    setEditingCommission(commission);
+    // Prefer terminal_markup if present (it overrides partner markup)
+    // @ts-ignore - terminal_markup may be attached dynamically
+    const tm = (commission as any).terminal_markup;
+    if (tm) {
+      setMarkupType(tm.type as CommissionType);
+      setMarkupValue(String(tm.value));
+      setMarkupCap(String(tm.cap));
+    } else if (commission.partner_markup) {
+      setMarkupType(commission.partner_markup.type);
+      setMarkupValue(commission.partner_markup.value.toString());
+      setMarkupCap(commission.partner_markup.cap.toString());
+    } else {
+      setMarkupType('percentage');
+      setMarkupValue('0');
+      setMarkupCap('0');
+    }
+    setIsEditCommissionOpen(true);
+  };
+
+  const closeEditCommissionModal = () => {
+    setIsEditCommissionOpen(false);
+    setEditingCommission(null);
+  };
+
+  const handleSaveTerminalMarkup = async () => {
+    if (!editingCommission || !id) return;
+
+    const value = parseFloat(markupValue);
+    const cap = parseFloat(markupCap);
+
+    if (isNaN(value) || value < 0) {
+      toast({ variant: 'destructive', title: 'Invalid value', description: 'Markup value must be 0 or greater' });
+      return;
+    }
+
+    if (markupType === 'percentage' && value > 100) {
+      toast({ variant: 'destructive', title: 'Invalid value', description: 'Percentage value cannot exceed 100' });
+      return;
+    }
+
+    setIsSavingCommission(true);
+    try {
+      await commissionService.setTerminalCommission(id, {
+        service_type_id: editingCommission.service_type_id,
+        type: markupType,
+        value,
+        cap: cap || 0,
+      });
+
+      toast({ title: 'Commission updated', description: `Markup for ${editingCommission.service_type.name} updated for this terminal` });
+      closeEditCommissionModal();
+      loadTerminalCommissions();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to save', description: error.message || 'Please try again' });
+    } finally {
+      setIsSavingCommission(false);
+    }
+  };
+
+  const handleRemoveTerminalMarkup = async () => {
+    if (!editingCommission || !id) return;
+    setIsSavingCommission(true);
+    try {
+      await commissionService.removeTerminalCommission(id, editingCommission.service_type_id);
+      toast({ title: 'Markup removed', description: `Markup for ${editingCommission.service_type.name} removed for this terminal` });
+      closeEditCommissionModal();
+      loadTerminalCommissions();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to remove markup', description: error.message || 'Please try again' });
+    } finally {
+      setIsSavingCommission(false);
     }
   };
 
@@ -198,6 +375,15 @@ export default function TerminalDetails() {
       style: 'currency',
       currency: 'NGN',
     }).format(amount);
+  };
+
+  const formatCommission = (type: CommissionType, value: number, cap: number) => {
+    if (type === 'percentage') {
+      const capText = cap > 0 ? ` (Cap: ₦${cap.toLocaleString()})` : '';
+      return `${value}%${capText}`;
+    } else {
+      return `₦${value.toLocaleString()}`;
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -319,6 +505,7 @@ export default function TerminalDetails() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="commissions">Commissions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -541,6 +728,87 @@ export default function TerminalDetails() {
             totalItems={totalItems}
             pageSize={pageSize}
           />
+        </TabsContent>
+        <TabsContent value="commissions" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Terminal Commissions</h3>
+            <div>
+              <Button variant="outline" onClick={loadTerminalCommissions}>Refresh</Button>
+            </div>
+          </div>
+
+          <div>
+            {isCommissionsLoading ? (
+              <div>Loading commissions...</div>
+            ) : (
+              <div className="space-y-4">
+                {terminalCommissions.map((item) => (
+                  <div key={item.service_type_id} className="flex items-center justify-between p-4 bg-muted rounded">
+                    <div>
+                      <div className="font-medium">{item.service_type.name}</div>
+                      <div className="text-sm text-muted-foreground">Base: {formatCommission(item.xtrapay_base.type, item.xtrapay_base.value, item.xtrapay_base.cap)}</div>
+                      {/** Prefer showing terminal markup if present (it overrides partner markup) */}
+                      <div className="text-sm text-muted-foreground">
+                        { (item as any).terminal_markup ? (
+                          <span>Terminal Markup: +{formatCommission((item as any).terminal_markup.type, (item as any).terminal_markup.value, (item as any).terminal_markup.cap)} <span className="text-xs text-muted-foreground">(overrides partner)</span></span>
+                        ) : item.partner_markup ? (
+                          <span>Partner Markup: +{formatCommission(item.partner_markup.type, item.partner_markup.value, item.partner_markup.cap)}</span>
+                        ) : (
+                          '-'
+                        ) }
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => openEditCommissionModal(item)}>Edit</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Dialog open={isEditCommissionOpen} onOpenChange={setIsEditCommissionOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Terminal Markup</DialogTitle>
+                <DialogDescription>
+                  Set a commission markup for this terminal for the selected service.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label>Type</Label>
+                  <Select value={markupType} onValueChange={(v: CommissionType) => setMarkupType(v as CommissionType)}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage</SelectItem>
+                      <SelectItem value="flat">Flat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Value</Label>
+                  <Input type="number" value={markupValue} onChange={(e) => setMarkupValue(e.target.value)} />
+                </div>
+
+                <div>
+                  <Label>Cap (₦)</Label>
+                  <Input type="number" value={markupCap} onChange={(e) => setMarkupCap(e.target.value)} />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <div className="flex gap-2">
+                  <Button variant="destructive" onClick={handleRemoveTerminalMarkup} disabled={isSavingCommission}>Remove</Button>
+                  <Button onClick={handleSaveTerminalMarkup} disabled={isSavingCommission}>Save</Button>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
 

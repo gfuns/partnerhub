@@ -102,6 +102,18 @@ export default function TransactionsList() {
       ),
     },
     { key: 'date', header: 'Date' },
+    {
+      key: 'actions',
+      header: '',
+      className: 'w-12',
+      render: (item: typeof mockTransactions[0]) => (
+        <ActionButton
+          icon={Eye}
+          tooltip="View Details"
+          onClick={() => navigate(`/transactions/${item.id}`)}
+        />
+      ),
+    },
   ];
 
   return (

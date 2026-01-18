@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review';
+type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review' | 'paid';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -21,6 +21,11 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     dot: 'bg-success',
   },
   success: {
+    bg: 'bg-success/10',
+    text: 'text-success',
+    dot: 'bg-success',
+  },
+  paid: {
     bg: 'bg-success/10',
     text: 'text-success',
     dot: 'bg-success',
@@ -108,12 +113,13 @@ const statusLabels: Record<StatusType, string> = {
   revoked: 'Revoked',
   approved: 'Approved',
   rejected: 'Rejected',
-  pending_review: 'Pending Review'
+  pending_review: 'Pending Review',
+  paid: 'Paid'
 };
 
 export function StatusBadge({ status, label, showDot = true, size = 'md' }: StatusBadgeProps) {
-  const styles = statusStyles[status] || statusStyles.pending; // Fallback to pending if status is unknown
-  const displayLabel = label || statusLabels[status] || status; // Show raw status if no label
+  const styles = statusStyles[status.toLowerCase()] || statusStyles.pending; // Fallback to pending if status is unknown
+  const displayLabel = label || statusLabels[status] || status; // Show raw status if no label    
 
   return (
     <span
@@ -134,7 +140,7 @@ export function StatusBadge({ status, label, showDot = true, size = 'md' }: Stat
           )}
         />
       )}
-      {displayLabel}
+      {displayLabel.replace(/_/g, ' ')}
     </span>
   );
 }

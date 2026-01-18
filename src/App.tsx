@@ -48,6 +48,11 @@ import ReportsList from "./pages/reports/ReportsList";
 import MonitoringDashboard from "./pages/monitoring/MonitoringDashboard";
 import SettingsPage from "./pages/settings/SettingsPage";
 
+// Partner pages - Wallet, Commissions, Settlements
+import WalletPage from "./pages/wallet/WalletPage";
+import PartnerCommissionsPage from "./pages/commissions/CommissionsPage";
+import PartnerSettlementsPage from "./pages/settlements/SettlementsPage";
+
 // Agent pages
 import MyTerminals from "./pages/agent/MyTerminals";
 import AgentTerminalDetails from "./pages/agent/TerminalDetails";
@@ -109,6 +114,11 @@ const App = () => (
               <Route path="/reports" element={<ReportsList />} />
               <Route path="/monitoring" element={<MonitoringDashboard />} />
               <Route path="/settings" element={<SettingsPage />} />
+              
+              {/* Partner routes - Wallet, Commissions, Settlements */}
+              <Route path="/wallet" element={<WalletPage />} />
+              <Route path="/commissions" element={<PartnerCommissionsPage />} />
+              <Route path="/settlements" element={<PartnerSettlementsPage />} />
               
               {/* Agent routes */}
               <Route path="/my-terminals" element={<MyTerminals />} />

@@ -83,7 +83,7 @@ export default function SettingsPage() {
       
       // Determine locked fields if KYC is approved
       if (profile.is_kyc_approved) {
-        setLockedFields(['name', 'email', 'phone', 'address', 'city', 'state', 'country']);
+        // setLockedFields(['name', 'email', 'phone', 'address', 'city', 'state', 'country']);
       }
     } catch (error: any) {
       toast({
