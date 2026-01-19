@@ -248,11 +248,10 @@ export default function EditAgent() {
 
           <Card>
             <CardContent className="pt-6">
-              <FormSection title="Contact Information" description="Contact details cannot be modified here">
+              <FormSection title="Contact Information" description="">
                 <FormField label="Contact Name" required>
                   <Input
                     value={formData.contact_name}
-                    disabled
                   />
                 </FormField>
 
@@ -260,14 +259,12 @@ export default function EditAgent() {
                   <Input
                     type="email"
                     value={formData.contact_email}
-                    disabled
                   />
                 </FormField>
 
                 <FormField label="Contact Phone" required>
                   <Input
                     value={formData.contact_phone}
-                    disabled
                   />
                 </FormField>
               </FormSection>

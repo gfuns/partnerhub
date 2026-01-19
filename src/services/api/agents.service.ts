@@ -77,7 +77,7 @@ export interface Agent {
   state: string;
   lga: string | null;
   status?: 'active' | 'pending' | 'suspended';
-  kyc_status: 'pending' | 'pending_onboarding' | 'in_review' | 'approved' | 'rejected' | 'pending_review';
+  kyc_status: 'pending' | 'pending_onboarding' | 'in_review' | 'approved' | 'rejected' | 'pending_review' | 'pending_correction';
   kyc_submitted_at: string | null;
   kyc_approved_at: string | null;
   created_at: string;

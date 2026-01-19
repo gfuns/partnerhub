@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Edit, Ban, CreditCard } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Ban, CreditCard, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { DataTable } from '@/components/DataTable';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -141,14 +141,14 @@ export default function AgentsList() {
             label="View Agent"
             onClick={() => navigate(`/agents/${item.id}`)}
           />
-          {hasPermission('agents.edit') && (
+          {hasPermission('agents.edit') && item.kyc_status !== 'pending_onboarding' && (
             <ActionButton
               icon={Edit}
               label="Edit Agent"
               onClick={() => navigate(`/agents/${item.id}/edit`)}
             />
           )}
-          {hasPermission('agents.edit') && item.status !== 'pending' && item.kyc_status !== 'pending_onboarding' && (
+          {hasPermission('agents.edit') && item.status !== 'pending' && item.kyc_status !== 'pending_onboarding' && item.kyc_status !== 'pending_correction' && (
             <ActionButton
               icon={Ban}
               label={item.status === 'suspended' ? 'Activate Agent' : 'Suspend Agent'}
@@ -158,11 +158,21 @@ export default function AgentsList() {
               }}
             />
           )}
-          <ActionButton
-            icon={CreditCard}
-            label="View Terminals"
-            onClick={() => navigate(`/terminals?agent=${item.id}`)}
-          />
+          {item.kyc_status !== 'pending_onboarding' && item.kyc_status !== 'pending_correction' && (
+            <ActionButton
+              icon={CreditCard}
+              label="View Terminals"
+              onClick={() => navigate(`/agents/${item.id}?tab=terminals`)}
+            />
+          )}
+          {/* Partner-initiated onboarding CTA for agents pending onboarding or pending correction */}
+          {(item.kyc_status === 'pending_onboarding' || item.kyc_status === 'pending_correction') && hasPermission('kyc.onboard') && (
+            <ActionButton
+              icon={UserPlus}
+              label="Onboard"
+              onClick={() => navigate(`/agents/${item.id}?tab=kyc`)}
+            />
+          )}
         </div>
       ),
     },
@@ -177,7 +187,7 @@ export default function AgentsList() {
           <PermissionGate permission="agents.create">
             <Button onClick={() => navigate('/agents/new')}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Agent
+              Create Agent
             </Button>
           </PermissionGate>
         }

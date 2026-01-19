@@ -119,8 +119,17 @@ class AuthService {
   async login(credentials: LoginRequest, loginType: 'partner' | 'agent' = 'partner'): Promise<LoginResponse> {
     // Store login type BEFORE making the request so getApiPrefix() can use it
     localStorage.setItem('login_type', loginType);
-    
-    const response = await apiService.post<LoginResponse>('/login', credentials);    
+    // Determine subdomain from current host and include as query param when present
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const hostParts = host.split('.').filter(Boolean);
+    let subdomain = '';
+    if (hostParts.length >= 3) {
+      subdomain = hostParts[0];
+    }
+
+    const loginUrl = subdomain ? `/login?subdomain=${encodeURIComponent(subdomain)}` : '/login';
+
+    const response = await apiService.post<LoginResponse>(loginUrl, credentials);
     
     // Store token
     if (response.data.token) {

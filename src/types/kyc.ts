@@ -50,6 +50,7 @@ export interface KycProfile {
   rc_number?: string; // Required for SME/Corporate
   tin_number?: string;
   bank_name: string;
+  bank_code?: string;
   account_number: string; // 10 digits
   account_name: string;
   bvn: string; // 11 digits
@@ -214,7 +215,7 @@ export const BUSINESS_TYPE_OPTIONS = [
 // ID Type Options for UI
 export const ID_TYPE_OPTIONS = [
   { value: 'nin' as IdType, label: 'National Identification Number (NIN)' },
-  { value: 'bvn' as IdType, label: 'Bank Verification Number (BVN)' },
+  // { value: 'bvn' as IdType, label: 'Bank Verification Number (BVN)' },
   { value: 'drivers_license' as IdType, label: "Driver's License" },
   { value: 'voters_card' as IdType, label: "Voter's Card" },
   { value: 'international_passport' as IdType, label: 'International Passport' },
@@ -437,6 +438,7 @@ export interface KycProfileDetails {
   rc_number?: string;
   tin_number?: string;
   bank_name: string;
+  bank_code?: string;
   account_number: string;
   account_name: string;
   bvn: string;

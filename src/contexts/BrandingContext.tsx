@@ -267,15 +267,25 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_BRANDING;
   });
 
-  // Apply branding whenever it changes
+  // Track whether branding has been explicitly applied (we don't want to show defaults before backend branding is fetched)
+  const [brandingApplied, setBrandingApplied] = useState<boolean>(() => {
+    // If there's stored branding, do not auto-apply on first render — wait for explicit apply
+    return false;
+  });
+
+  // Apply branding to document only after explicit apply
   useEffect(() => {
-    applyBrandingToDocument(branding);
-  }, [branding]);
+    if (brandingApplied) {
+      applyBrandingToDocument(branding);
+    }
+  }, [branding, brandingApplied]);
 
   const setBranding = useCallback((newBranding: BrandingSettings) => {
     const merged = { ...DEFAULT_BRANDING, ...newBranding };
     setBrandingState(merged);
     localStorage.setItem('xtrapay_branding', JSON.stringify(merged));
+    setBrandingApplied(true);
+    // applyBrandingToDocument will run via effect when brandingApplied becomes true
   }, []);
 
   const resetBranding = useCallback(() => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useBranding } from '@/contexts/BrandingContext';
+import { brandingService } from '@/services/api/branding.service';
 
 type AccountType = 'partner' | 'agent';
 
@@ -14,7 +16,40 @@ export default function Login() {
   const navigate = useNavigate();
   const { authenticate, isAuthenticated, isLoading, authState } = useAuth();
   const { toast } = useToast();
-  
+  const { setBranding, getAssetUrl, branding: ctxBranding } = useBranding();
+
+  // Local copy of partner/branding returned by public branding endpoint
+  const [remoteBranding, setRemoteBranding] = useState<any | null>(null);
+  const [remotePartner, setRemotePartner] = useState<any | null>(null);
+
+  const fetchBranding = useCallback(async () => {
+    try {
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      const parts = host.split('.').filter(Boolean);
+      const subdomain = parts.length >= 3 ? parts[0] : '';
+
+      const resp = await brandingService.getBrandingBySubdomain(subdomain);
+      if (resp && resp.success && resp.data) {
+        // API may return branding directly or nested under `branding` key
+        const payload = (resp.data.branding) ? resp.data.branding : resp.data;
+        setRemoteBranding(payload);
+        // If partner details exist in the response, store locally for display
+        if (resp.data.partner) {
+          setRemotePartner(resp.data.partner);
+        }
+        // Apply branding to app (saves to localStorage and updates CSS vars)
+        setBranding(payload as any);
+      }
+    } catch (err) {
+      // silently ignore public branding failures on login - defaults will be used
+      console.warn('Could not fetch branding for this host', err);
+    }
+  }, [setBranding]);
+
+  useEffect(() => {
+    fetchBranding();
+  }, [fetchBranding]);
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState<AccountType>('partner');
@@ -90,34 +125,51 @@ export default function Login() {
     }
   };
 
+  const activeBranding = remoteBranding || ctxBranding || {};
+  const logoUrl = getAssetUrl(remotePartner?.logo_url ?? activeBranding.logo_url);
+
   return (
-    <div className="min-h-screen flex">
+    <div
+      className="min-h-screen flex"
+      style={{ background: activeBranding.login_bg_color || undefined, fontFamily: activeBranding.font_family || undefined }}
+    >
       {/* Left panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-sidebar items-center justify-center p-12">
+      <div
+        className="hidden lg:flex lg:w-1/2 items-center justify-center p-12"
+        style={{ background: activeBranding.sidebar_bg_color || undefined, color: activeBranding.sidebar_text_color || undefined }}
+      >
         <div className="max-w-md text-center">
           <div className="mb-8 flex justify-center">
-            <Logo variant="light" size="lg" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={remotePartner?.name || 'Logo'} className="h-16 w-auto object-contain" />
+            ) : (
+              <Logo variant="light" size="lg" />
+            )}
           </div>
-          <h1 className="text-3xl font-semibold text-sidebar-primary mb-4">
-            Partner POS Platform
+          <h1 className="text-3xl font-semibold mb-4" style={{ color: activeBranding.sidebar_text_color || undefined }}>
+            {remotePartner?.name || activeBranding.partner_name || 'Partner POS Platform'}
           </h1>
-          <p className="text-sidebar-foreground text-lg">
+          <p className="text-lg" style={{ color: activeBranding.sidebar_text_color || undefined }}>
             Manage terminals, track transactions, and grow your business with our enterprise-grade payment platform.
           </p>
         </div>
       </div>
 
       {/* Right panel - Login form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12" style={{ background: activeBranding.login_bg_color || undefined }}>
+        <div className="w-full max-w-md rounded-md p-6 lg:p-8" style={{ background: activeBranding.login_card_bg_color || undefined, boxShadow: activeBranding.box_shadow || undefined }}>
           <div className="lg:hidden mb-8 flex justify-center">
-            <Logo size="lg" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={remotePartner?.name || 'Logo'} className="h-12 w-auto object-contain" />
+            ) : (
+              <Logo size="lg" />
+            )}
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-foreground">Sign in</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Enter your credentials to access your account
+            <h2 className="text-2xl font-semibold" style={{ color: activeBranding.text_primary_color || undefined }}>Sign in</h2>
+            <p className="mt-2 text-sm" style={{ color: activeBranding.text_secondary_color || undefined }}>
+              {activeBranding.login_welcome_message || 'Enter your credentials to access your account'}
             </p>
           </div>
 

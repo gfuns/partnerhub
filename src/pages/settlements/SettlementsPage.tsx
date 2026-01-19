@@ -115,6 +115,7 @@ export default function SettlementsPage() {
   // Bank accounts state
   const [accounts, setAccounts] = useState<SettlementAccount[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
+  const [isLoadingBanks, setIsLoadingBanks] = useState(false);
   
   // Eligibility
   const [eligibility, setEligibility] = useState<SettlementEligibility | null>(null);
@@ -145,7 +146,15 @@ export default function SettlementsPage() {
 
   useEffect(() => {
     loadData();
+    // prefetch banks separately to avoid modal loading issues
+    fetchBanks();
   }, []);
+
+  useEffect(() => {
+    if (isAddAccountModalOpen && banks.length === 0 && !isLoadingBanks) {
+      fetchBanks();
+    }
+  }, [isAddAccountModalOpen]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -224,6 +233,18 @@ export default function SettlementsPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchBanks = async () => {
+    try {
+      setIsLoadingBanks(true);
+      const res = await settlementService.getBanks();
+      setBanks((res as any).data ?? []);
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Failed to load banks', description: error.message || 'Please try again' });
+    } finally {
+      setIsLoadingBanks(false);
     }
   };
 
@@ -817,18 +838,24 @@ export default function SettlementsPage() {
             <div>
               <Label>Bank</Label>
               <Select value={newAccountBankCode} onValueChange={handleBankChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select bank" />
+                <SelectTrigger disabled={isLoadingBanks || banks.length === 0}>
+                  <SelectValue placeholder={isLoadingBanks ? 'Loading banks...' : (banks.length === 0 ? 'No banks available' : 'Select bank')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {banks.map((bank, idx) => (
-                    <SelectItem
-                      key={bank.code ?? `${bank.name}-${idx}`}
-                      value={bank.code ?? `${bank.name}-${idx}`}
-                    >
-                      {bank.name}
-                    </SelectItem>
-                  ))}
+                  {isLoadingBanks ? (
+                    <SelectItem value="" disabled>Loading banks...</SelectItem>
+                  ) : banks.length === 0 ? (
+                    <SelectItem value="" disabled>No banks available</SelectItem>
+                  ) : (
+                    banks.map((bank, idx) => (
+                      <SelectItem
+                        key={bank.code ?? `${bank.name}-${idx}`}
+                        value={bank.code ?? `${bank.name}-${idx}`}
+                      >
+                        {bank.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

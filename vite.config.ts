@@ -6,8 +6,14 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    // host: "::",
+    host: true,
     port: 8080,
+    strictPort: true,
+    allowedHosts: [
+      'xtrapay.test',
+      '.xtrapay.test', // THIS enables all subdomains
+    ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

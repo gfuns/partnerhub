@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Edit, Ban, CreditCard, TrendingUp, Activity, Users, CalendarCheck, FileCheck, Plus, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
@@ -31,14 +31,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import partnerService from '@/services/api/partner.service';
+import partnerAgentKycService from '@/services/api/partnerAgentKyc.service';
 import { useAuth } from '@/contexts/AuthContext';
+import OnboardAgentModal from '@/components/agents/OnboardAgentModal';
 import { agentsService, Agent, AgentTerminal, AgentUser, AgentStats, TerminalDetails, Bank } from '@/services/api/agents.service';
 
 export default function AgentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { getAssetUrl } = useAuth();
+  const { hasPermission } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [stats, setStats] = useState<AgentStats | null>(null);
@@ -53,16 +58,32 @@ export default function AgentDetails() {
   const [hasVirtualAccount, setHasVirtualAccount] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
+  const [selectedBankCode, setSelectedBankCode] = useState<string | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [isLoadingBanks, setIsLoadingBanks] = useState(false);
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
+  // Onboarding dialog/state for partner-initiated KYC
+  const [onboardDialogOpen, setOnboardDialogOpen] = useState(false);
+  const [onboardLoading, setOnboardLoading] = useState(false);
+  const [onboardProfile, setOnboardProfile] = useState<Record<string, any>>({});
+  const [onboardDocuments, setOnboardDocuments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchAgentDetails();
     }
   }, [id]);
+
+  // Controlled tab state — allow selecting via ?tab= query param
+  const [activeTab, setActiveTab] = useState<string>('overview');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [location.search]);
 
   useEffect(() => {
     // Fetch banks when virtual account is enabled
@@ -74,8 +95,20 @@ export default function AgentDetails() {
   const fetchBanks = async () => {
     try {
       setIsLoadingBanks(true);
+      // Prefer partner virtual banks when agent's partner id is available
+      if (agent && agent.partner_id) {
+        try {
+          const resp = await partnerService.getVirtualBanks(agent.partner_id);
+          // API expected: { status, data: [...] }
+          setBanks(resp.data ?? resp?.data ?? []);
+          return;
+        } catch (err) {
+          // fallback to global banks list
+        }
+      }
+
       const response = await agentsService.getBanks();
-      setBanks(response.data);
+      setBanks(response.data ?? []);
     } catch (error) {
       toast({
         title: 'Error',
@@ -101,6 +134,24 @@ export default function AgentDetails() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadOnboardingData = async (agentId: number) => {
+    try {
+      setOnboardLoading(true);
+      const [statusResp, profileResp, docsResp] = await Promise.all([
+        partnerAgentKycService.getStatus(agentId).catch(() => null),
+        partnerAgentKycService.getProfile(agentId).catch(() => null),
+        partnerAgentKycService.getDocuments(agentId).catch(() => null),
+      ]);
+
+      if (profileResp && profileResp.data) setOnboardProfile(profileResp.data.profile || profileResp.data);
+      if (docsResp && docsResp.data) setOnboardDocuments(docsResp.data.documents || docsResp.data);
+    } catch (err) {
+      console.warn('Failed to load onboarding data', err);
+    } finally {
+      setOnboardLoading(false);
     }
   };
 
@@ -155,7 +206,7 @@ export default function AgentDetails() {
 
     // Validate virtual account details if enabled
     if (hasVirtualAccount) {
-      if (!selectedBankId || !accountNumber || !accountName) {
+      if ((!selectedBankId && !selectedBankCode) || !accountNumber || !accountName) {
         toast({
           title: 'Validation Error',
           description: 'Please complete all virtual account fields',
@@ -174,7 +225,8 @@ export default function AgentDetails() {
       };
 
       if (hasVirtualAccount) {
-        payload.bank_id = selectedBankId;
+        if (selectedBankId) payload.bank_id = selectedBankId;
+        else if (selectedBankCode) payload.bank_code = selectedBankCode;
         payload.account_number = accountNumber;
         payload.account_name = accountName;
       }
@@ -201,7 +253,7 @@ export default function AgentDetails() {
   };
 
   const handleVerifyAccount = async () => {
-    if (!accountNumber || !selectedBankId) {
+    if (!accountNumber || !selectedBankCode) {
       toast({
         title: 'Validation Error',
         description: 'Please enter account number and select bank',
@@ -219,8 +271,9 @@ export default function AgentDetails() {
       return;
     }
 
-    const selectedBank = banks.find(b => b.id === selectedBankId);
-    if (!selectedBank) {
+    // bank_code should be the selected bank code value
+    const bankCode = selectedBankCode;
+    if (!bankCode) {
       toast({
         title: 'Error',
         description: 'Selected bank not found',
@@ -233,7 +286,7 @@ export default function AgentDetails() {
       setIsVerifyingAccount(true);
       const response = await agentsService.verifyAccount({
         account_number: accountNumber,
-        bank_code: selectedBank.code,
+        bank_code: bankCode,
       });
       setAccountName(response.data.accountName);
       toast({
@@ -441,7 +494,7 @@ export default function AgentDetails() {
         }
       />
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v)} className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
@@ -587,6 +640,14 @@ export default function AgentDetails() {
         </TabsContent>
 
         <TabsContent value="kyc" className="space-y-6">
+            {/* Partner onboarding actions */}
+            {agent && (agent.kyc_status === 'pending_onboarding' || agent.kyc_status === 'pending_correction') && hasPermission && hasPermission('kyc.onboard') && (
+              <div className="flex justify-end">
+                <Button onClick={() => { setOnboardDialogOpen(true); }}>
+                  {agent.kyc_status === 'pending_onboarding' ? 'Start Onbaording' : 'Update KYC'}
+                </Button>
+              </div>
+            )}
           {/* KYC Profile */}
           {agent.kyc_profile ? (
             <>
@@ -599,12 +660,12 @@ export default function AgentDetails() {
                 </DetailCard>
 
                 <DetailCard title="Personal Information">
-                  {agent.kyc_profile.id_type && <DetailRow label="ID Type" value={agent.kyc_profile.id_type} />}
+                  {agent.kyc_profile.id_type && <DetailRow label="ID Type" value={agent.kyc_profile.id_type?.replace(/_/g, ' ').toUpperCase()} />}
                   {agent.kyc_profile.id_number && <DetailRow label="ID Number" value={agent.kyc_profile.id_number} />}
                   {agent.kyc_profile.date_of_birth && (
                     <DetailRow label="Date of Birth" value={new Date(agent.kyc_profile.date_of_birth).toLocaleDateString()} />
                   )}
-                  {agent.kyc_profile.gender && <DetailRow label="Gender" value={agent.kyc_profile.gender} />}
+                  {agent.kyc_profile.gender && <DetailRow label="Gender" value={agent.kyc_profile.gender?.toUpperCase()} />}
                   {agent.kyc_profile.bvn && <DetailRow label="BVN" value={agent.kyc_profile.bvn} />}
                 </DetailCard>
               </div>
@@ -612,14 +673,23 @@ export default function AgentDetails() {
               <DetailCard title="Banking Information">
                 {agent.kyc_profile.bank_name && <DetailRow label="Bank Name" value={agent.kyc_profile.bank_name} />}
                 {agent.kyc_profile.account_number && <DetailRow label="Account Number" value={agent.kyc_profile.account_number} />}
-                {agent.kyc_profile.account_name && <DetailRow label="Account Name" value={agent.kyc_profile.account_name} />}
+                {agent.kyc_profile.account_name && <DetailRow label="Account Name" value={agent.kyc_profile.account_name?.toUpperCase()} />}
               </DetailCard>
 
               <DetailCard title="KYC Timeline">
-                <DetailRow label="Profile Created" value={new Date(agent.kyc_profile.created_at).toLocaleString()} />
-                <DetailRow label="Last Updated" value={new Date(agent.kyc_profile.updated_at).toLocaleString()} />
+                <DetailRow
+                  label="Profile Created"
+                  value={new Date(agent.kyc_profile.created_at).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                />
+                <DetailRow
+                  label="Last Updated"
+                  value={new Date(agent.kyc_profile.updated_at).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                />
                 {agent.kyc_profile.submitted_at && (
-                  <DetailRow label="Submitted At" value={new Date(agent.kyc_profile.submitted_at).toLocaleString()} />
+                  <DetailRow
+                    label="Submitted At"
+                    value={new Date(agent.kyc_profile.submitted_at).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
+                  />
                 )}
               </DetailCard>
 
@@ -630,7 +700,7 @@ export default function AgentDetails() {
                     {agent.kyc_documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
                         <div>
-                          <p className="font-medium">{doc?.document_name || doc?.document_type?.replace(/_/g, ' ')}</p>
+                          <p className="font-medium">{doc?.document_name?.toUpperCase() || doc?.document_type?.replace(/_/g, ' ')?.toUpperCase()}</p>
                           <p className="text-sm text-muted-foreground">{doc.status}</p>
                         </div>
                         <Button variant="outline" size="sm" onClick={() => window.open(getAssetUrl(doc.file_url) || '', '_blank')}>
@@ -641,6 +711,13 @@ export default function AgentDetails() {
                   </div>
                 </DetailCard>
               )}
+
+            <OnboardAgentModal
+              open={onboardDialogOpen}
+              onOpenChange={setOnboardDialogOpen}
+              agentId={agent.id}
+              onSuccess={fetchAgentDetails}
+            />
             </>
           ) : (
             <DetailCard title="KYC Profile">
@@ -753,7 +830,43 @@ export default function AgentDetails() {
                     <Switch
                       id="has-virtual-account"
                       checked={hasVirtualAccount}
-                      onCheckedChange={setHasVirtualAccount}
+                      onCheckedChange={async (val) => {
+                        // When enabling, verify partner eligibility then fetch partner virtual banks
+                        if (val) {
+                          if (!agent) {
+                            toast({ title: 'Error', description: 'Agent not loaded', variant: 'destructive' });
+                            return;
+                          }
+
+                          try {
+                            const res = await partnerService.canAssignVirtualAccount(agent.partner_id);
+                            // Accept multiple possible response shapes
+                            const allowed = res?.data?.can_assign ?? res?.data?.canAssign ?? res?.data?.allowed ?? res?.data ?? false;
+                            if (!allowed) {
+                              toast({ title: 'Not Eligible', description: 'Partner is not eligible to assign virtual accounts', variant: 'destructive' });
+                              return;
+                            }
+
+                            setHasVirtualAccount(true);
+                            // fetch virtual banks for partner
+                            try {
+                              const banksResp = await partnerService.getVirtualBanks(agent.partner_id);
+                              setBanks(banksResp?.data ?? banksResp ?? []);
+                            } catch (err) {
+                              // if fetching virtual banks failed, attempt general banks
+                              await fetchBanks();
+                            }
+                          } catch (error: any) {
+                            toast({ title: 'Error', description: error?.response?.data?.message || 'Failed to check eligibility', variant: 'destructive' });
+                          }
+                        } else {
+                          // turning off
+                          setHasVirtualAccount(false);
+                          setSelectedBankId(null);
+                          setAccountNumber('');
+                          setAccountName('');
+                        }
+                      }}
                       disabled={isAssigning}
                     />
                   </div>
@@ -763,9 +876,13 @@ export default function AgentDetails() {
                       <div className="space-y-2">
                         <Label htmlFor="bank-name">Bank Name *</Label>
                         <Select
-                          value={selectedBankId?.toString() || ''}
+                          value={selectedBankCode || ''}
                           onValueChange={(value) => {
-                            setSelectedBankId(Number(value));
+                            // value is bank.code when available, fall back to id string
+                            setSelectedBankCode(value || null);
+                            const found = banks.find(b => (b.code && b.code === value) || (b.id && b.id.toString() === value));
+                            if (found && found.id) setSelectedBankId(found.id);
+                            else setSelectedBankId(null);
                             setAccountName(''); // Reset account name when bank changes
                           }}
                           disabled={isLoadingBanks || isAssigning}
@@ -775,7 +892,7 @@ export default function AgentDetails() {
                           </SelectTrigger>
                           <SelectContent>
                             {banks.map((bank) => (
-                              <SelectItem key={bank.id} value={bank.id.toString()}>
+                              <SelectItem key={bank.id ?? bank.code} value={bank.code ?? (bank.id?.toString() ?? '')}>
                                 {bank.name}
                               </SelectItem>
                             ))}
@@ -802,7 +919,7 @@ export default function AgentDetails() {
                             type="button"
                             variant="outline"
                             onClick={handleVerifyAccount}
-                            disabled={!accountNumber || accountNumber.length !== 10 || !selectedBankId || isVerifyingAccount || isAssigning}
+                            disabled={!accountNumber || accountNumber.length !== 10 || !selectedBankCode || isVerifyingAccount || isAssigning}
                           >
                             {isVerifyingAccount && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isVerifyingAccount ? 'Verifying...' : 'Verify'}

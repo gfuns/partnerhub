@@ -121,6 +121,22 @@ class PartnerService {
     );
     return response;
   }
+
+  /**
+   * Check if partner can assign virtual account to terminals
+   * GET /partners/{partnerId}/can-assign-virtual-account
+   */
+  async canAssignVirtualAccount(partnerId: number): Promise<any> {
+    return apiService.get(`/partners/${partnerId}/can-assign-virtual-account`);
+  }
+
+  /**
+   * Get virtual banks available for the partner
+   * GET /partners/{partnerId}/virtual-banks
+   */
+  async getVirtualBanks(partnerId: number): Promise<any> {
+    return apiService.get(`/partners/${partnerId}/virtual-banks`);
+  }
 }
 
 const partnerService = new PartnerService();
