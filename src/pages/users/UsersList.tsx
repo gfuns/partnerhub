@@ -143,7 +143,7 @@ export default function UsersList() {
 
   const isSelf = (contextId: number) => {
     // Check if this is the current user's context
-    return currentUser?.context_id === contextId;
+    return currentUser?.currentContext?.id === contextId;
   };
 
   const formatDate = (dateString: string) => {

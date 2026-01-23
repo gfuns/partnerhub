@@ -493,6 +493,11 @@ export interface DocumentReviewResponse {
 // Approve KYC Request/Response
 export interface ApproveKycPayload {
   comment?: string;
+  checklist?: Array<{
+    item_id: number;
+    checked: boolean;
+    comment?: string;
+  }>;
 }
 
 export interface ApproveKycResponse {

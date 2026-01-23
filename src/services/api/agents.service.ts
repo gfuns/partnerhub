@@ -244,6 +244,8 @@ export interface Bank {
   name: string;
   code: string;
   active: boolean;
+  bank_slug?: string;
+  bank_name?: string;
 }
 
 export interface BanksListResponse {

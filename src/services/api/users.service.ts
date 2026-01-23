@@ -106,28 +106,28 @@ class UsersService {
   /**
    * Get user details
    */
-  async getUser(id: string): Promise<any> {
+  async getUser(id: string | number): Promise<any> {
     return apiService.get(`/users/${id}`);
   }
 
   /**
    * Update user
    */
-  async updateUser(id: string, data: UpdateUserRequest): Promise<any> {
+  async updateUser(id: string | number, data: UpdateUserRequest): Promise<any> {
     return apiService.put(`/users/${id}`, data);
   }
 
   /**
    * Delete user
    */
-  async deleteUser(id: string): Promise<any> {
+  async deleteUser(id: string | number): Promise<any> {
     return apiService.delete(`/users/${id}`);
   }
 
   /**
    * Resend invitation email
    */
-  async resendInvitation(id: string): Promise<any> {
+  async resendInvitation(id: string | number): Promise<any> {
     return apiService.post(`/users/${id}/resend-invitation`);
   }
 }

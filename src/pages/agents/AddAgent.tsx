@@ -29,6 +29,7 @@ interface FormErrors {
   address?: string;
   city?: string;
   state?: string;
+  lga?: string;
   owner_first_name?: string;
   owner_last_name?: string;
   owner_email?: string;

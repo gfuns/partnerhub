@@ -92,7 +92,8 @@ export default function OnboardAgentModal({ open, onOpenChange, agentId, onSucce
       // load banks for bank select
       try {
         const banksResp = await agentsService.getBanks();
-        setBanks(banksResp.data ?? banksResp?.data ?? banksResp ?? []);
+        const banksData = (banksResp as any)?.data ?? banksResp ?? [];
+        setBanks(Array.isArray(banksData) ? banksData : []);
       } catch (err) {
         // ignore
       }
@@ -199,7 +200,7 @@ export default function OnboardAgentModal({ open, onOpenChange, agentId, onSucce
     try {
       const bankCode = profile.bank_code || null;
       const resp = await agentsService.verifyAccount({ account_number: profile.account_number, bank_code: bankCode });
-      const accountName = resp.data.accountName || resp.data.account_name || resp.data.name;
+      const accountName = (resp.data as any).accountName || (resp.data as any).account_name;
       if (accountName) {
         setProfile({ ...profile, account_name: accountName });
         toast({ title: 'Account Verified', description: 'Account name populated' });
@@ -541,7 +542,7 @@ export default function OnboardAgentModal({ open, onOpenChange, agentId, onSucce
                           <p className="font-medium">{d.document_label}</p>
                           <p className="text-sm text-muted-foreground">{d.status}</p>
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => window.open(getAssetUrl(d.file_url) || '', '_blank')}>View</Button>
+                        <Button size="sm" variant="outline" onClick={() => window.open(getAssetUrl((d as any).file_url || '') || '', '_blank')}>View</Button>
                       </div>
                     ))}
                   </div>

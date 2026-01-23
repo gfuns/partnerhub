@@ -365,7 +365,7 @@ export default function KycOnboarding() {
           <Logo size="md" />
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium">{user?.name}</p>
+              <p className="text-sm font-medium">{user ? `${user.firstName} ${user.lastName}` : ''}</p>
               <p className="text-xs text-muted-foreground">KYC Onboarding</p>
             </div>
             <Button variant="outline" size="sm" onClick={handleLogout}>
