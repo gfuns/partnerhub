@@ -245,6 +245,25 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full"
+              style={{
+                background: activeBranding.btn_primary_bg_color || undefined,
+                color: activeBranding.btn_primary_text_color || undefined,
+                borderRadius: activeBranding.border_radius || undefined,
+                fontFamily: activeBranding.font_family || undefined,
+                boxShadow: activeBranding.box_shadow || undefined,
+                border: activeBranding.btn_primary_bg_color ? 'none' : undefined,
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={e => {
+                if (activeBranding.btn_primary_hover_bg_color) {
+                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_hover_bg_color;
+                }
+              }}
+              onMouseOut={e => {
+                if (activeBranding.btn_primary_bg_color) {
+                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_bg_color;
+                }
+              }}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Signing in...' : 'Sign in'}

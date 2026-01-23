@@ -1,6 +1,6 @@
-import apiService from './ApiService';
+import apiService from '../ApiService';
 
-// Common query params
+// Common query params for reports
 export interface ReportsQuery {
   start_date?: string;
   end_date?: string;
@@ -51,52 +51,107 @@ export interface TransactionDetailRow {
 
 export interface TransactionDetailResponse {
   success: boolean;
-  data: TransactionDetailRow[];
+  data: TransactionDetailRow[] | any;
   meta?: { page: number; per_page: number; total: number };
+}
+
+export interface ExportJob {
+  id: string;
+  report: string;
+  params: any;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  created_at: string;
+  download_url?: string | null;
 }
 
 class ReportsService {
   // Transaction summary
+  private normalizeParams(params?: Record<string, any>) {
+    if (!params) return {};
+    const p: Record<string, any> = { ...params };
+    // support UI fields -> API expected names
+    if (p.service_type) {
+      p.service_type_id = p.service_type;
+      delete p.service_type;
+    }
+    if (p.serviceType) {
+      p.service_type_id = p.serviceType;
+      delete p.serviceType;
+    }
+    // agent id may come as agentId or agent_id
+    if (p.agentId) {
+      p.agent_id = p.agentId;
+      delete p.agentId;
+    }
+    return p;
+  }
+
   async getTransactionSummary(params?: ReportsQuery): Promise<TransactionSummaryResponse> {
-    return apiService.get('/reports/transactions/summary', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    const q = this.normalizeParams(params as any);
+    return apiService.get('/reports/transactions/summary', { params: q });
+  }
+
+  // backward-compatible alias used by some pages
+  async getTransactionsSummary(params?: ReportsQuery): Promise<TransactionSummaryResponse> {
+    return this.getTransactionSummary(params);
   }
 
   // Transaction detail (paginated)
   async getTransactionDetail(params?: ReportsQuery): Promise<TransactionDetailResponse> {
-    return apiService.get('/reports/transactions/detail', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    const q = this.normalizeParams(params as any);
+    return apiService.get('/reports/transactions/detail', { params: q });
   }
 
-  // Other report endpoints (stubs)
+  // backward-compatible alias
+  async getTransactionsDetail(params?: ReportsQuery): Promise<TransactionDetailResponse> {
+    return this.getTransactionDetail(params);
+  }
+
+  // Start a background export job
+  async startExport(report: string, params: any): Promise<{ success: boolean; data: { job_id: string } } & any> {
+    const body = { report, params: this.normalizeParams(params) };
+    return apiService.post('/reports/exports', body);
+  }
+
+  async getExportStatus(jobId: string): Promise<{ success: boolean; data: ExportJob } & any> {
+    return apiService.get(`/reports/exports/${jobId}`);
+  }
+
+  async listExports(): Promise<{ success: boolean; data: ExportJob[] } & any> {
+    return apiService.get('/reports/exports');
+  }
+
+  // Other report endpoints
   async getSettlements(params?: ReportsQuery) {
-    return apiService.get('/reports/settlements', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/settlements', { params });
   }
 
   async getWalletReport(params?: ReportsQuery) {
-    return apiService.get('/reports/wallet', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/wallet', { params });
   }
 
   async getTerminalsReport(params?: ReportsQuery) {
-    return apiService.get('/reports/terminals', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/terminals', { params });
   }
 
   async getAgentsReport(params?: ReportsQuery) {
-    return apiService.get('/reports/agents', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/agents', { params });
   }
 
   async getCommissionsReport(params?: ReportsQuery) {
-    return apiService.get('/reports/commissions', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/commissions', { params });
   }
 
   async getVirtualAccountsUsage(params?: ReportsQuery) {
-    return apiService.get('/reports/virtual-accounts/usage', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/virtual-accounts/usage', { params });
   }
 
   async getReconciliation(params?: ReportsQuery) {
-    return apiService.get('/reports/reconciliation', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/reconciliation', { params });
   }
 
   async getAuditLogs(params?: ReportsQuery) {
-    return apiService.get('/reports/audit-logs', { baseURL: import.meta.env.VITE_API_BASE_URL + '/api/partner-hub', params });
+    return apiService.get('/reports/audit-logs', { params });
   }
 }
 

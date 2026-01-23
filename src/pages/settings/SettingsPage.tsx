@@ -1207,6 +1207,208 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
+              {/* Icon Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Icon Colors</CardTitle>
+                  <CardDescription>Customize icon colors for navigation, status, and UI elements.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['icon_color', 'Default Icon'],
+                      ['icon_active_color', 'Active Icon'],
+                      ['icon_muted_color', 'Muted Icon'],
+                      ['icon_success_color', 'Success Icon'],
+                      ['icon_warning_color', 'Warning Icon'],
+                      ['icon_danger_color', 'Danger Icon'],
+                      ['icon_info_color', 'Info Icon'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stat Card Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Stat Card Colors</CardTitle>
+                  <CardDescription>Customize stat card icon and background colors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['stat_icon_color', 'Stat Icon'],
+                      ['stat_icon_bg_color', 'Stat Icon BG'],
+                      ['stat_icon_success_color', 'Stat Success'],
+                      ['stat_icon_warning_color', 'Stat Warning'],
+                      ['stat_icon_danger_color', 'Stat Danger'],
+                      ['stat_icon_info_color', 'Stat Info'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Table Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Table Colors</CardTitle>
+                  <CardDescription>Customize table header, row, and border colors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['table_header_bg_color', 'Header BG'],
+                      ['table_header_text_color', 'Header Text'],
+                      ['table_row_bg_color', 'Row BG'],
+                      ['table_row_alt_bg_color', 'Alt Row BG'],
+                      ['table_row_hover_bg_color', 'Row Hover BG'],
+                      ['table_border_color', 'Border'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Alert Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Alert Colors</CardTitle>
+                  <CardDescription>Customize alert and notification colors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {[
+                      ['alert_success_bg_color', 'Success BG'],
+                      ['alert_success_text_color', 'Success Text'],
+                      ['alert_warning_bg_color', 'Warning BG'],
+                      ['alert_warning_text_color', 'Warning Text'],
+                      ['alert_danger_bg_color', 'Danger BG'],
+                      ['alert_danger_text_color', 'Danger Text'],
+                      ['alert_info_bg_color', 'Info BG'],
+                      ['alert_info_text_color', 'Info Text'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Input Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Input & Form Colors</CardTitle>
+                  <CardDescription>Customize input, border, and placeholder colors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['input_bg_color', 'Input BG'],
+                      ['input_border_color', 'Input Border'],
+                      ['input_text_color', 'Input Text'],
+                      ['input_placeholder_color', 'Placeholder'],
+                      ['input_focus_border_color', 'Focus Border'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Button State Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Button State Colors</CardTitle>
+                  <CardDescription>Customize secondary, hover, and disabled button states.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['btn_secondary_hover_bg_color', 'Secondary Hover BG'],
+                      ['btn_secondary_border_color', 'Secondary Border'],
+                      ['btn_disabled_bg_color', 'Disabled BG'],
+                      ['btn_disabled_text_color', 'Disabled Text'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label} Color</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Miscellaneous UI Colors Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Miscellaneous UI Colors</CardTitle>
+                  <CardDescription>Customize loader, divider, tooltip, progress, switch, and checkbox colors.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {[
+                      ['card_shadow', 'Card Shadow'],
+                      ['card_header_bg_color', 'Card Header BG'],
+                      ['card_footer_bg_color', 'Card Footer BG'],
+                      ['loader_color', 'Loader'],
+                      ['divider_color', 'Divider'],
+                      ['tooltip_bg_color', 'Tooltip BG'],
+                      ['tooltip_text_color', 'Tooltip Text'],
+                      ['progress_bar_color', 'Progress Bar'],
+                      ['switch_active_color', 'Switch Active'],
+                      ['switch_bg_color', 'Switch BG'],
+                      ['checkbox_active_color', 'Checkbox Active'],
+                      ['checkbox_bg_color', 'Checkbox BG'],
+                    ].map(([key, label]) => (
+                      <div className="space-y-2" key={key}>
+                        <Label>{label}</Label>
+                        <div className="flex items-center gap-2">
+                          <Input type={key.includes('shadow') ? 'text' : 'color'} value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="h-10 w-14 p-1 cursor-pointer" />
+                          <Input value={branding[key] || ''} onChange={e => setBranding({ ...branding, [key]: e.target.value })} className="font-mono text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
             {/* Text & Link Colors Card */}
             <Card>
               <CardHeader>

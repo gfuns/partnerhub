@@ -33,7 +33,7 @@ interface NavItem {
 const partnerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
   { label: 'Agents', href: '/agents', icon: Users, permission: 'agents.view' },
-  { label: 'KYC Review', href: '/agents/kyc-review', icon: FileCheck, permission: 'agents.view' },
+  { label: 'KYC Review', href: '/kyc-review/agents', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
   { label: 'Wallet', href: '/wallet', icon: Wallet, permission: 'wallet.view' },
@@ -49,8 +49,8 @@ const agentNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
   { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/agent/transactions', icon: Receipt, permission: 'transactions.view' },
-  { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
-  { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
+  // { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
+  // { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
   { label: 'Profile', href: '/profile', icon: UserCircle }, // No permission required
 ];
 
@@ -98,13 +98,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div 
           className="flex h-16 items-center justify-between px-4"
           style={{ 
-            borderBottomColor: branding.sidebar_hover_bg_color,
+            borderBottomColor: branding.sidebar_bg_color,
             borderBottomWidth: '1px',
             backgroundColor: branding.sidebar_logo_bg_color || branding.sidebar_bg_color
           }}
         >
           {logoUrl ? (
-            <img 
+            <img
               src={logoUrl} 
               alt="Logo" 
               className="h-10 max-w-[180px] object-contain"
@@ -125,7 +125,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
             {filteredNavItems.map((item) => {
-              const isActive = location.pathname === item.href;
+              // Active if current path starts with menu href (and href is not "/")
+              const isActive = item.href !== '/' && location.pathname.startsWith(item.href);
               return (
                 <li key={item.href}>
                   <NavLink
@@ -160,7 +161,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div 
           className="p-4"
           style={{ 
-            borderTopColor: branding.sidebar_hover_bg_color,
+            borderTopColor: branding.sidebar_bg_color,
             borderTopWidth: '1px'
           }}
         >

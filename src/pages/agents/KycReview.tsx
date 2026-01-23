@@ -104,7 +104,7 @@ export default function KycReview() {
         description: error.response?.data?.message || 'Failed to load KYC details',
         variant: 'destructive',
       });
-      navigate('/agents/kyc-review');
+      navigate('/kyc-review/agents');
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +179,7 @@ export default function KycReview() {
       });
 
       setApproveDialogOpen(false);
-      navigate('/agents/kyc-review');
+      navigate('/kyc-review/agents');
     } catch (error: any) {
       toast({
         title: 'Approval Failed',
@@ -213,7 +213,7 @@ export default function KycReview() {
       });
 
       setRejectDialogOpen(false);
-      navigate('/agents/kyc-review');
+      navigate('/kyc-review/agents');
     } catch (error: any) {
       toast({
         title: 'Rejection Failed',
@@ -267,7 +267,7 @@ export default function KycReview() {
       });
 
       setCorrectionsDialogOpen(false);
-      navigate('/agents/kyc-review');
+      navigate('/kyc-review/agents');
     } catch (error: any) {
       toast({
         title: 'Request Failed',
@@ -311,7 +311,7 @@ export default function KycReview() {
         title="KYC Review"
         description={`Review KYC submission for ${kycDetails.agent.business_name}`}
         actions={
-          <Button variant="ghost" onClick={() => navigate('/agents/kyc-review')}>
+          <Button variant="ghost" onClick={() => navigate('/kyc-review/agents')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to List
           </Button>

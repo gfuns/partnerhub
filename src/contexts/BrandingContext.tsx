@@ -56,6 +56,55 @@ export interface BrandingSettings {
   dark_mode_card_bg_color: string;
   dark_mode_text_color: string;
   is_active: boolean;
+  // New branding keys for full dynamic styling
+  icon_color: string;
+  icon_active_color: string;
+  icon_muted_color: string;
+  icon_success_color: string;
+  icon_warning_color: string;
+  icon_danger_color: string;
+  icon_info_color: string;
+  card_shadow: string;
+  card_header_bg_color: string;
+  card_footer_bg_color: string;
+  btn_secondary_hover_bg_color: string;
+  btn_secondary_border_color: string;
+  btn_disabled_bg_color: string;
+  btn_disabled_text_color: string;
+  table_header_bg_color: string;
+  table_header_text_color: string;
+  table_row_bg_color: string;
+  table_row_alt_bg_color: string;
+  table_row_hover_bg_color: string;
+  table_border_color: string;
+  input_bg_color: string;
+  input_border_color: string;
+  input_text_color: string;
+  input_placeholder_color: string;
+  input_focus_border_color: string;
+  alert_success_bg_color: string;
+  alert_success_text_color: string;
+  alert_warning_bg_color: string;
+  alert_warning_text_color: string;
+  alert_danger_bg_color: string;
+  alert_danger_text_color: string;
+  alert_info_bg_color: string;
+  alert_info_text_color: string;
+  loader_color: string;
+  divider_color: string;
+  tooltip_bg_color: string;
+  tooltip_text_color: string;
+  progress_bar_color: string;
+  switch_active_color: string;
+  switch_bg_color: string;
+  checkbox_active_color: string;
+  checkbox_bg_color: string;
+  stat_icon_color: string;
+  stat_icon_bg_color: string;
+  stat_icon_success_color: string;
+  stat_icon_warning_color: string;
+  stat_icon_danger_color: string;
+  stat_icon_info_color: string;
 }
 
 // Default branding values (Xtrapay defaults)
@@ -112,6 +161,55 @@ export const DEFAULT_BRANDING: BrandingSettings = {
   dark_mode_card_bg_color: '#1c2b46',
   dark_mode_text_color: '#b7c2d0',
   is_active: true,
+  // New branding keys (defaults)
+  icon_color: '#364a63',
+  icon_active_color: '#ff6600',
+  icon_muted_color: '#b7c2d0',
+  icon_success_color: '#1ee0ac',
+  icon_warning_color: '#f4bd0e',
+  icon_danger_color: '#e85347',
+  icon_info_color: '#09c2de',
+  card_shadow: '0 1px 3px rgba(0,0,0,0.1)',
+  card_header_bg_color: '#f5f6fa',
+  card_footer_bg_color: '#f5f6fa',
+  btn_secondary_hover_bg_color: '#dbeafe',
+  btn_secondary_border_color: '#e5e9f2',
+  btn_disabled_bg_color: '#e5e9f2',
+  btn_disabled_text_color: '#b7c2d0',
+  table_header_bg_color: '#f5f6fa',
+  table_header_text_color: '#364a63',
+  table_row_bg_color: '#ffffff',
+  table_row_alt_bg_color: '#f5f6fa',
+  table_row_hover_bg_color: '#e0e4ff',
+  table_border_color: '#e5e9f2',
+  input_bg_color: '#ffffff',
+  input_border_color: '#e5e9f2',
+  input_text_color: '#364a63',
+  input_placeholder_color: '#b7c2d0',
+  input_focus_border_color: '#ff6600',
+  alert_success_bg_color: '#e6fffa',
+  alert_success_text_color: '#1ee0ac',
+  alert_warning_bg_color: '#fffbe6',
+  alert_warning_text_color: '#f4bd0e',
+  alert_danger_bg_color: '#fff0f0',
+  alert_danger_text_color: '#e85347',
+  alert_info_bg_color: '#e6f7ff',
+  alert_info_text_color: '#09c2de',
+  loader_color: '#ff6600',
+  divider_color: '#e5e9f2',
+  tooltip_bg_color: '#101924',
+  tooltip_text_color: '#ffffff',
+  progress_bar_color: '#ff6600',
+  switch_active_color: '#ff6600',
+  switch_bg_color: '#e5e9f2',
+  checkbox_active_color: '#ff6600',
+  checkbox_bg_color: '#ffffff',
+  stat_icon_color: '#ff6600',
+  stat_icon_bg_color: '#e0e4ff',
+  stat_icon_success_color: '#1ee0ac',
+  stat_icon_warning_color: '#f4bd0e',
+  stat_icon_danger_color: '#e85347',
+  stat_icon_info_color: '#09c2de',
 };
 
 interface BrandingContextType {

@@ -843,9 +843,9 @@ export default function SettlementsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {isLoadingBanks ? (
-                    <SelectItem value="" disabled>Loading banks...</SelectItem>
+                    <SelectItem value="__loading_banks__" disabled>Loading banks...</SelectItem>
                   ) : banks.length === 0 ? (
-                    <SelectItem value="" disabled>No banks available</SelectItem>
+                    <SelectItem value="__no_banks__" disabled>No banks available</SelectItem>
                   ) : (
                     banks.map((bank, idx) => (
                       <SelectItem

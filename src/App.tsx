@@ -46,6 +46,14 @@ import UserDetails from "./pages/users/UserDetails";
 
 // Partner pages - Other
 import ReportsList from "./pages/reports/ReportsList";
+import TransactionsSummary from "./pages/reports/transactions/Summary";
+import TransactionsDetail from "./pages/reports/transactions/Detail";
+import ExportsList from "./pages/reports/ExportsList";
+import SettlementsReport from "./pages/reports/Settlements";
+import WalletReport from "./pages/reports/Wallet";
+import TerminalsReport from "./pages/reports/Terminals";
+import AgentsReport from "./pages/reports/Agents";
+import CommissionsReport from "./pages/reports/Commissions";
 import MonitoringDashboard from "./pages/monitoring/MonitoringDashboard";
 import SettingsPage from "./pages/settings/SettingsPage";
 
@@ -93,8 +101,8 @@ const App = () => (
               {/* Partner routes - Agents */}
               <Route path="/agents" element={<AgentsList />} />
               <Route path="/agents/new" element={<AddAgent />} />
-              <Route path="/agents/kyc-review" element={<KycReviewList />} />
-              <Route path="/agents/kyc-review/:id" element={<KycReview />} />
+              <Route path="/kyc-review/agents" element={<KycReviewList />} />
+              <Route path="/kyc-review/agents/:id" element={<KycReview />} />
               <Route path="/agents/:id" element={<AgentDetails />} />
               <Route path="/agents/:id/edit" element={<EditAgent />} />
               
@@ -114,6 +122,14 @@ const App = () => (
               
               {/* Partner routes - Other */}
               <Route path="/reports" element={<ReportsList />} />
+              <Route path="/reports/transactions/summary" element={<TransactionsSummary />} />
+              <Route path="/reports/transactions/detail" element={<TransactionsDetail />} />
+              <Route path="/reports/exports" element={<ExportsList />} />
+              <Route path="/reports/settlements" element={<SettlementsReport />} />
+              <Route path="/reports/wallet" element={<WalletReport />} />
+              <Route path="/reports/terminals" element={<TerminalsReport />} />
+              <Route path="/reports/agents" element={<AgentsReport />} />
+              <Route path="/reports/commissions" element={<CommissionsReport />} />
               <Route path="/monitoring" element={<MonitoringDashboard />} />
               <Route path="/settings" element={<SettingsPage />} />
               

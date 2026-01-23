@@ -151,7 +151,7 @@ export default function KycReviewList() {
             <ActionButton
               icon={FileCheck}
               label={status === 'submitted' ? 'Start Review' : 'View Review'}
-              onClick={() => navigate(`/agents/kyc-review/${item.id}`)}
+              onClick={() => navigate(`/kyc-review/agents/${item.id}`)}
             />
           </div>
         );

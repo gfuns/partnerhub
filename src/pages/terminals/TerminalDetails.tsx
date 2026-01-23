@@ -190,7 +190,6 @@ export default function TerminalDetails() {
             : null,
           // keep terminal_markup on the object using partner_markup field for UI editing compatibility
           // but we'll prefer terminal_markup where appropriate
-          partner_markup: pm ? { type: pmType, value: pmValue, cap: pmCap } : null,
           effective_rate: {
             type: appliedType || baseType,
             value: effectiveValue,
@@ -469,6 +468,8 @@ export default function TerminalDetails() {
     return <div className="p-6">Loading terminal details...</div>;
   }
 
+  const virtualAccounts = (terminal as any).virtual_accounts || [];
+
   return (
     <div>
       <PageHeader
@@ -476,7 +477,7 @@ export default function TerminalDetails() {
         description={terminal.agent ? `Assigned to ${terminal.agent.business_name}` : 'Unassigned'}
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => navigate('/terminals')}>
+            <Button variant="ghost" onClick={() => navigate(-1)}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
@@ -572,6 +573,30 @@ export default function TerminalDetails() {
                 <p className="text-muted-foreground">No agent assigned</p>
               )}
             </DetailCard>
+
+            {virtualAccounts.length > 0 && (
+              <DetailCard title="Virtual Accounts">
+                <div className="space-y-3">
+                  {virtualAccounts.map((va: any) => (
+                    <div key={va.id} className="p-3 rounded-lg border bg-muted/20">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="text-xs text-muted-foreground">Bank Name</div>
+                          <div className="font-medium">{va.bank_name}</div>
+
+                          <div className="text-xs text-muted-foreground mt-2">Account Number</div>
+                          <div className="text-sm font-mono">{va.account_number}</div>
+
+                          <div className="text-xs text-muted-foreground mt-2">Account Name</div>
+                          <div className="text-sm">{(va.account_name.toUpperCase() || '').toString()}</div>
+                        </div>
+                        <div className="text-sm text-muted-foreground ml-4">{va.status}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </DetailCard>
+            )}
           </div>
 
           <DetailCard title="Monthly Performance">

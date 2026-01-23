@@ -57,6 +57,7 @@ export default function AgentDetails() {
   // Virtual Account states
   const [hasVirtualAccount, setHasVirtualAccount] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
+  const [bank, setBank] = useState(null);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
   const [selectedBankCode, setSelectedBankCode] = useState<string | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
@@ -225,8 +226,7 @@ export default function AgentDetails() {
       };
 
       if (hasVirtualAccount) {
-        if (selectedBankId) payload.bank_id = selectedBankId;
-        else if (selectedBankCode) payload.bank_code = selectedBankCode;
+        payload.bank_id = bank?.id;
         payload.account_number = accountNumber;
         payload.account_name = accountName;
       }
@@ -880,9 +880,10 @@ export default function AgentDetails() {
                           onValueChange={(value) => {
                             // value is bank.code when available, fall back to id string
                             setSelectedBankCode(value || null);
-                            const found = banks.find(b => (b.code && b.code === value) || (b.id && b.id.toString() === value));
-                            if (found && found.id) setSelectedBankId(found.id);
-                            else setSelectedBankId(null);
+                            const found = banks.find(b => (b.bank_slug && b.bank_slug.toString() === value.toString()) || (b.id && b.id.toString() === value));
+                            
+                            if (found && found.id) setBank(found);
+                            else setBank(null);
                             setAccountName(''); // Reset account name when bank changes
                           }}
                           disabled={isLoadingBanks || isAssigning}
@@ -892,8 +893,8 @@ export default function AgentDetails() {
                           </SelectTrigger>
                           <SelectContent>
                             {banks.map((bank) => (
-                              <SelectItem key={bank.id ?? bank.code} value={bank.code ?? (bank.id?.toString() ?? '')}>
-                                {bank.name}
+                              <SelectItem key={bank.id ?? bank.bank_slug} value={bank.bank_slug ?? (bank.id?.toString() ?? '')}>
+                                {bank.bank_name}
                               </SelectItem>
                             ))}
                           </SelectContent>
