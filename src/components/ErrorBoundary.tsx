@@ -11,7 +11,7 @@ interface State {
 export default class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> {
   constructor(props: React.PropsWithChildren<{}>) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null, expanded: false };
+    this.state = { hasError: false, error: null, errorInfo: null, expanded: false, copyStatus: 'idle' };
   }
 
   static getDerivedStateFromError(error: Error) {

@@ -187,7 +187,7 @@ export default function EditAgent() {
     <div>
       <PageHeader
         title="Edit Agent"
-        description={`Update information for ${formData.businessName}.`}
+        description={`Update information for ${formData.business_name}.`}
         actions={
           <Button variant="ghost" onClick={() => navigate(`/agents/${id}`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />

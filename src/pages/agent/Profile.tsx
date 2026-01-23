@@ -17,7 +17,7 @@ export default function Profile() {
 
   const profileData = {
     businessName: 'Brown Enterprises',
-    contactName: user?.name || 'Agent User',
+    contactName: user ? `${user.firstName} ${user.lastName}` : 'Agent User',
     email: user?.email || 'agent@demo.com',
     phone: '+234 801 234 5678',
     address: '123 Commerce Street, Lagos',

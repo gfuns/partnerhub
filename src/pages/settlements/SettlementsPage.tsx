@@ -183,7 +183,7 @@ export default function SettlementsPage() {
       });
 
       // Stats might be at root or inside data
-      const statsSource = settlementsRes.stats ?? rawSettlements?.stats;
+      const statsSource = (settlementsRes as any).stats ?? (rawSettlements as any)?.stats;
       if (statsSource) {
         setSettlementStats(statsSource);
       }
@@ -293,7 +293,7 @@ export default function SettlementsPage() {
         });
         console.log(res);
         
-        setNewAccountName(res.data.accountName.toUpperCase());
+        setNewAccountName(((res.data as any).accountName || (res.data as any).account_name || '').toUpperCase());
       } catch (error: any) {
         toast({
           variant: 'destructive',

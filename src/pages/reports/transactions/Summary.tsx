@@ -30,7 +30,8 @@ export default function TransactionsSummary() {
       if (endDate) params.end_date = endDate;
       try {
         const resp = await reportsService.getTransactionsSummary(params);
-        const data = resp?.data?.data ?? resp?.data ?? resp;
+        const rawData = resp as any;
+        const data = rawData?.data?.data ?? rawData?.data ?? rawData;
         setSummary(data);
       } catch (err) {
         console.warn('Failed to load summary', err);

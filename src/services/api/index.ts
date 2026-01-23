@@ -66,16 +66,7 @@ export type {
   AgentUser,
 } from './agents.service';
 
-export type {
-  KYCSubmission,
-  KYCListParams,
-  KYCListResponse,
-  KYCSummary,
-  ReviewDocumentRequest,
-  ApproveKYCRequest,
-  RejectKYCRequest,
-  RequestCorrectionsRequest,
-} from './kyc.service';
+// KYC types are now in types/kyc.ts - removed deprecated exports
 
 export type {
   Terminal,
@@ -92,7 +83,6 @@ export type {
   TransactionListResponse,
   TransactionSummary,
   TransactionTrends,
-  ExportParams,
 } from './transactions.service';
 
 export type {
@@ -106,11 +96,9 @@ export type {
 } from './users.service';
 
 export type {
-  Settings,
+  SettingsData,
   SettingsResponse,
   UpdateProfileRequest as SettingsUpdateProfileRequest,
-  UpdateWebhookRequest,
-  UpdateHubRequest,
   AuditLog,
   AuditLogParams,
   AuditLogResponse,
