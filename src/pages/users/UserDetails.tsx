@@ -119,7 +119,7 @@ export default function UserDetails() {
     return formatDate(dateString);
   };
 
-  const isSelf = userDetail?.context_id === currentUser?.context_id;
+  const isSelf = userDetail?.context_id === currentUser?.currentContext?.id;
   const isOwner = userDetail?.role === 'partner_owner';
 
   if (loading) {

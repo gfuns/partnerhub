@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review' | 'paid';
+type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review' | 'pending_correction' | 'paid';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -91,9 +91,14 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     dot: 'bg-destructive',
   },
   pending_review: {
-    bg: 'bg-destructive/10',
-    text: 'text-destructive',
-    dot: 'bg-destructive',
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-600',
+    dot: 'bg-blue-500',
+  },
+  pending_correction: {
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-600',
+    dot: 'bg-orange-500',
   },
 };
 
@@ -114,6 +119,7 @@ const statusLabels: Record<StatusType, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   pending_review: 'Pending Review',
+  pending_correction: 'Pending Correction',
   paid: 'Paid'
 };
 

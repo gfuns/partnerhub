@@ -19,18 +19,23 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   isLoading?: boolean;
+  loading?: boolean; // alias for isLoading
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
+  getRowKey?: (item: T) => string | number;
 }
 
-export function DataTable<T extends { id: string | number }>({
+export function DataTable<T>({
   columns,
   data,
   isLoading = false,
+  loading,
   emptyMessage = 'No data available',
   onRowClick,
+  getRowKey,
 }: DataTableProps<T>) {
-  if (isLoading) {
+  const effectiveLoading = isLoading || loading || false;
+  if (effectiveLoading) {
     return (
       <div className="rounded-lg border border-border">
         <Table>
@@ -85,12 +90,14 @@ export function DataTable<T extends { id: string | number }>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
-            <TableRow
-              key={item.id}
-              onClick={() => onRowClick?.(item)}
-              className={onRowClick ? 'cursor-pointer' : ''}
-            >
+          {data.map((item, index) => {
+            const key = getRowKey ? getRowKey(item) : (item as any).id ?? (item as any).context_id ?? index;
+            return (
+              <TableRow
+                key={key}
+                onClick={() => onRowClick?.(item)}
+                className={onRowClick ? 'cursor-pointer' : ''}
+              >
               {columns.map((column) => (
                 <TableCell key={column.key} className={column.className}>
                   {column.render
@@ -98,8 +105,9 @@ export function DataTable<T extends { id: string | number }>({
                     : (item as Record<string, unknown>)[column.key] as React.ReactNode}
                 </TableCell>
               ))}
-            </TableRow>
-          ))}
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
