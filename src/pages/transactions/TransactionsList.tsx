@@ -224,7 +224,7 @@ export default function TransactionsList() {
               className="w-44"
             />
           </div>
-          <div className="flex flex-col gap-2">
+          {/* <div className="flex flex-col gap-2">
             <label className="text-xs text-muted-foreground">Type</label>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-36">
@@ -237,7 +237,7 @@ export default function TransactionsList() {
                 <SelectItem value="3">Transfer</SelectItem>
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
           <div className="flex flex-col gap-2">
             <label className="text-xs text-muted-foreground">Status</label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>

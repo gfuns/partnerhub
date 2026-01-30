@@ -72,6 +72,9 @@ import SettlementDetails from "./pages/agent/SettlementDetails";
 import Commissions from "./pages/agent/Commissions";
 import CommissionDetails from "./pages/agent/CommissionDetails";
 import Profile from "./pages/agent/Profile";
+// Support pages
+import SupportList from "./pages/support/SupportList";
+import TicketDetail from "./pages/support/TicketDetail";
 
 import NotFound from "./pages/NotFound";
 
@@ -148,6 +151,9 @@ const App = () => (
               <Route path="/commissions" element={<Commissions />} />
               <Route path="/commissions/:id" element={<CommissionDetails />} />
               <Route path="/profile" element={<Profile />} />
+              {/* Support module */}
+              <Route path="/support" element={<SupportList />} />
+              <Route path="/support/:id" element={<TicketDetail />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

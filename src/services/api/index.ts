@@ -20,6 +20,7 @@ export { settingsService } from './settings.service';
 export { commissionService, calculateFee, formatMoney } from './commission.service';
 export { walletService } from './wallet.service';
 export { settlementService, calculateSettlementFee } from './settlement.service';
+export { supportService } from './support.service';
 
 // Export types with explicit naming to avoid conflicts
 export type {
@@ -153,6 +154,16 @@ export type {
   SweepConfigResponse,
   UpdateSweepConfigRequest,
 } from './wallet.service';
+
+export type {
+  Ticket,
+  TicketMessage,
+  TicketListParams,
+  TicketListResponse,
+  TicketDetailsResponse,
+  CreateTicketRequest,
+  Category,
+} from './support.service';
 
 // Settlement types
 export type {

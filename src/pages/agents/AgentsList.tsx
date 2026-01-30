@@ -215,9 +215,10 @@ export default function AgentsList() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
             <SelectItem value="suspended">Suspended</SelectItem>
+            <SelectItem value="deactivated">Deactivated</SelectItem>
           </SelectContent>
         </Select>
         <Select value={kycStatusFilter} onValueChange={(value) => {
@@ -229,9 +230,9 @@ export default function AgentsList() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All KYC</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_review">In Review</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>

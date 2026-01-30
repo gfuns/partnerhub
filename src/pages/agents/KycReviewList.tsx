@@ -201,7 +201,7 @@ export default function KycReviewList() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(value) => {
+        {/* <Select value={statusFilter} onValueChange={(value) => {
           setStatusFilter(value);
           setCurrentPage(1);
         }}>
@@ -216,8 +216,8 @@ export default function KycReviewList() {
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
-        </Select>
-        <Select value={businessTypeFilter} onValueChange={(value) => {
+        </Select> */}
+        {/* <Select value={businessTypeFilter} onValueChange={(value) => {
           setBusinessTypeFilter(value);
           setCurrentPage(1);
         }}>
@@ -230,7 +230,7 @@ export default function KycReviewList() {
             <SelectItem value="sme">SME</SelectItem>
             <SelectItem value="corporate">Corporate</SelectItem>
           </SelectContent>
-        </Select>
+        </Select> */}
       </div>
 
       <DataTable

@@ -70,7 +70,7 @@ export function DataTable<T extends { id: string | number }>({
   }
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden bg-card">
       <Table>
         <TableHeader>
           <TableRow className="bg-secondary/50 hover:bg-secondary/50">
