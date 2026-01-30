@@ -8,24 +8,40 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+import apiService from '@/services/ApiService';
 
 export default function Profile() {
   const { user, partner } = useAuth();
   const { toast } = useToast();
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
+  const { data: profileResp, isLoading: loadingProfile } = useQuery({
+    queryKey: ['agent_profile'],
+    queryFn: () => apiService.get('/profile'),
+  });
+
+  const profile = profileResp?.data ?? profileResp ?? null;
+
+  const partnerProfile = profile?.partner_profile?.profile ?? profile?.partner_profile ?? null;
+  const agentProfile = profile?.agent_profile ?? profile?.agent ?? null;
+  const userProfile = profile?.user ?? profile?.user ?? null;
+  const context = profile?.context ?? null;
 
   const profileData = {
-    businessName: 'Brown Enterprises',
-    contactName: user ? `${user.firstName} ${user.lastName}` : 'Agent User',
-    email: user?.email || 'agent@demo.com',
-    phone: '+234 801 234 5678',
-    address: '123 Commerce Street, Lagos',
-    state: 'Lagos',
-    partnerName: partner?.name || 'Page Financials',
-    status: 'active',
-    accountNumber: '****5678',
-    bankName: 'First Bank',
+    businessName: agentProfile?.business_name ?? partnerProfile?.name ?? partner?.name ?? '—',
+    contactName: agentProfile?.contact_name ?? (userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : (user ? `${user.firstName} ${user.lastName}` : 'Agent User')),
+    email: agentProfile?.contact_email ?? userProfile?.email ?? user?.email ?? '—',
+    phone: agentProfile?.contact_phone ?? userProfile?.phone ?? '—',
+    address: agentProfile?.address ?? partnerProfile?.address ?? '—',
+    state: agentProfile?.state ?? partnerProfile?.state ?? '—',
+    partnerName: partnerProfile?.name ?? partner?.name ?? '—',
+    status: agentProfile?.status ?? 'active',
+    accountNumber: profile?.settlement_account?.account_number ?? '—',
+    bankName: profile?.settlement_account?.bank ?? '—',
+    lastLogin: userProfile?.last_login_at ?? null,
+    roleLabel: context?.role_label ?? context?.role ?? null,
+    permissions: context?.permissions ?? [],
   };
 
   const handleRequestUpdate = () => {
@@ -36,36 +52,40 @@ export default function Profile() {
 
   return (
     <div>
-      <PageHeader title="Profile" description="Your business and contact information." actions={<Button variant="outline" onClick={() => setRequestModalOpen(true)}><MessageSquare className="mr-2 h-4 w-4" />Request Update</Button>} />
+      <PageHeader
+        title={loadingProfile ? 'Profile' : `${userProfile?.first_name ? `${userProfile.first_name} ${userProfile.last_name}` : profileData.contactName}`}
+        description={loadingProfile ? 'Your business and contact information.' : `${profileData.roleLabel ?? 'Agent'} • ${profileData.partnerName}`}
+        // actions={<Button variant="outline" onClick={() => setRequestModalOpen(true)}><MessageSquare className="mr-2 h-4 w-4" />Request Update</Button>}
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Building className="h-5 w-5" />Business Information</CardTitle><CardDescription>Your registered business details.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Business Name</span><span className="font-medium">{profileData.businessName}</span></div>
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Address</span><span className="font-medium">{profileData.address}</span></div>
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">State</span><span className="font-medium">{profileData.state}</span></div>
-            <div className="flex justify-between py-2"><span className="text-muted-foreground">Status</span><StatusBadge status={profileData.status as 'active'} /></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Business Name</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.businessName}</span></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Address</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.address}</span></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">State</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.state}</span></div>
+            <div className="flex justify-between py-2"><span className="text-muted-foreground">Status</span><StatusBadge status={(loadingProfile ? 'active' : (profileData.status as any)) ?? 'active'} /></div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><User className="h-5 w-5" />Contact Information</CardTitle><CardDescription>Your personal contact details.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Contact Name</span><span className="font-medium">{profileData.contactName}</span></div>
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground flex items-center gap-1"><Mail className="h-4 w-4" />Email</span><span className="font-medium">{profileData.email}</span></div>
-            <div className="flex justify-between py-2"><span className="text-muted-foreground flex items-center gap-1"><Phone className="h-4 w-4" />Phone</span><span className="font-medium">{profileData.phone}</span></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Contact Name</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.contactName}</span></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground flex items-center gap-1"><Mail className="h-4 w-4" />Email</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.email}</span></div>
+            <div className="flex justify-between py-2"><span className="text-muted-foreground flex items-center gap-1"><Phone className="h-4 w-4" />Phone</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.phone}</span></div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle>Partner Information</CardTitle><CardDescription>Your assigned partner details.</CardDescription></CardHeader>
-          <CardContent><div className="flex justify-between py-2"><span className="text-muted-foreground">Partner Name</span><span className="font-medium">{profileData.partnerName}</span></div></CardContent>
+          <CardContent><div className="flex justify-between py-2"><span className="text-muted-foreground">Partner Name</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.partnerName}</span></div></CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader><CardTitle>Bank Account</CardTitle><CardDescription>Your settlement account (read-only).</CardDescription></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Bank</span><span className="font-medium">{profileData.bankName}</span></div>
-            <div className="flex justify-between py-2"><span className="text-muted-foreground">Account</span><span className="font-medium">{profileData.accountNumber}</span></div>
+            <div className="flex justify-between py-2 border-b"><span className="text-muted-foreground">Bank</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.bankName}</span></div>
+            <div className="flex justify-between py-2"><span className="text-muted-foreground">Account</span><span className="font-medium">{loadingProfile ? 'Loading…' : profileData.accountNumber}</span></div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
       <Dialog open={requestModalOpen} onOpenChange={setRequestModalOpen}>
         <DialogContent>

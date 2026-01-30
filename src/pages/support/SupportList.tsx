@@ -10,7 +10,10 @@ export default function SupportList() {
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data, isLoading } = useQuery(['support_tickets'], () => supportService.getTickets());
+  const { data, isLoading } = useQuery({
+    queryKey: ['support_tickets'],
+    queryFn: () => supportService.getTickets(),
+  });
 
   const tickets: Ticket[] = data?.data ?? [];
 

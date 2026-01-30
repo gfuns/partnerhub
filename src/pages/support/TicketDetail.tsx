@@ -9,7 +9,11 @@ export default function TicketDetail() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery(['support_ticket', id], () => supportService.getTicket(id!));
+  const { data, isLoading } = useQuery({
+    queryKey: ['support_ticket', id],
+    queryFn: () => supportService.getTicket(id!),
+    enabled: !!id,
+  });
 
   const ticket = data?.data;
 

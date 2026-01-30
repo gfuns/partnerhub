@@ -15,6 +15,7 @@ export interface Terminal {
   serial_number: string;
   name?: string;
   status: 'active' | 'suspended' | 'revoked';
+  online_status?: 'online' | 'offline';
   partner_id: number;
   agent_id?: number;
   agent?: Agent;
@@ -243,6 +244,11 @@ class TerminalsService {
   async getTransactions(id: number | string, params?: TransactionListParams): Promise<TransactionListResponse> {
     const queryString = params ? apiService.buildQueryString(params) : '';
     return apiService.get(`/terminals/${id}/transactions${queryString}`);
+  }
+
+  async getRecentTransactions(id: number | string, params?: TransactionListParams): Promise<TransactionListResponse> {
+    const queryString = params ? apiService.buildQueryString(params) : '';
+    return apiService.get(`/terminals/${id}/recent-transactions${queryString}`);
   }
 
   /**

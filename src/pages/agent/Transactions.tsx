@@ -24,73 +24,28 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
-
-const mockTransactions = [
-  { id: 'TXN-001234', terminalId: 'TRM-001', amount: '₦25,000', status: 'success', date: '2024-01-15 14:32', type: 'Transfer' },
-  { id: 'TXN-001235', terminalId: 'TRM-001', amount: '₦150,000', status: 'success', date: '2024-01-15 14:28', type: 'Withdrawal' },
-  { id: 'TXN-001236', terminalId: 'TRM-002', amount: '₦8,500', status: 'error', date: '2024-01-15 14:25', type: 'Transfer' },
-  { id: 'TXN-001237', terminalId: 'TRM-001', amount: '₦45,000', status: 'success', date: '2024-01-15 14:20', type: 'Deposit' },
-  { id: 'TXN-001238', terminalId: 'TRM-002', amount: '₦12,000', status: 'success', date: '2024-01-15 14:15', type: 'Transfer' },
-  { id: 'TXN-001239', terminalId: 'TRM-001', amount: '₦78,000', status: 'success', date: '2024-01-15 14:10', type: 'Withdrawal' },
-  { id: 'TXN-001240', terminalId: 'TRM-002', amount: '₦5,000', status: 'pending', date: '2024-01-15 14:05', type: 'Transfer' },
-  { id: 'TXN-001241', terminalId: 'TRM-001', amount: '₦92,000', status: 'success', date: '2024-01-15 14:00', type: 'Deposit' },
-];
-
-const terminals = [
-  { id: 'all', label: 'All Terminals' },
-  { id: 'TRM-001', label: 'TRM-001' },
-  { id: 'TRM-002', label: 'TRM-002' },
-];
+import { useQuery } from '@tanstack/react-query';
+import transactionsService from '@/services/api/transactions.service';
+import terminalsService from '@/services/api/terminals.service';
 
 const columns = [
-  { 
-    key: 'id', 
+  {
+    key: 'trx',
     header: 'Transaction ID',
-    render: (item: typeof mockTransactions[0]) => (
-      <span className="font-mono text-sm">{item.id}</span>
-    ),
+    render: (item: any) => <span className="font-mono text-sm">{item.trx ?? item.ref ?? item.id}</span>,
   },
-  { 
-    key: 'terminalId', 
-    header: 'Terminal',
-    render: (item: typeof mockTransactions[0]) => (
-      <span className="font-mono text-sm">{item.terminalId}</span>
-    ),
-  },
-  { key: 'type', header: 'Type' },
-  { 
-    key: 'amount', 
-    header: 'Amount',
-    render: (item: typeof mockTransactions[0]) => (
-      <span className="font-medium">{item.amount}</span>
-    ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (item: typeof mockTransactions[0]) => (
-      <StatusBadge 
-        status={item.status as 'success' | 'error' | 'pending'} 
-        size="sm" 
-      />
-    ),
-  },
-  { key: 'date', header: 'Date' },
-  {
-    key: 'actions',
-    header: '',
-    className: 'w-12',
-    render: (item: typeof mockTransactions[0]) => (
-      <Link to={`/agent/transactions/${item.id}`}>
-        <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
-      </Link>
-    ),
-  },
+  { key: 'terminal', header: 'Terminal', render: (item: any) => <span className="font-mono text-sm">{item.terminal_name ?? item.terminal_id ?? '—'}</span> },
+  { key: 'type', header: 'Type', render: (item: any) => item.type_name ?? item.type },
+  { key: 'amount', header: 'Amount', render: (item: any) => <span className="font-medium">{item.amount_formatted ?? item.amount}</span> },
+  { key: 'status', header: 'Status', render: (item: any) => <StatusBadge status={(item.status || '').toString().includes('success') ? 'success' : ((item.status || '').toString().includes('pending') ? 'pending' : 'error')} size="sm" /> },
+  { key: 'created_at', header: 'Date', render: (item: any) => item.created_at ? new Date(item.created_at).toLocaleString() : '—' },
+  { key: 'actions', header: '', className: 'w-12', render: (item: any) => (<Link to={`/agent/transactions/${item.id}`}><ActionButton icon={Eye} tooltip="View Details" variant="ghost" /></Link>) },
 ];
 
 export default function AgentTransactions() {
   const [searchParams] = useSearchParams();
   const terminalFilter = searchParams.get('terminal') || 'all';
+  console.log(terminalFilter);
   
   const [search, setSearch] = useState('');
   const [selectedTerminal, setSelectedTerminal] = useState(terminalFilter);
@@ -98,22 +53,36 @@ export default function AgentTransactions() {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(25);
 
-  const filteredTransactions = mockTransactions.filter(t => {
-    const matchesSearch = search === '' || 
-      t.id.toLowerCase().includes(search.toLowerCase()) ||
-      t.terminalId.toLowerCase().includes(search.toLowerCase());
-    const matchesTerminal = selectedTerminal === 'all' || t.terminalId === selectedTerminal;
-    const matchesStatus = selectedStatus === 'all' || t.status === selectedStatus;
-    return matchesSearch && matchesTerminal && matchesStatus;
+  const { data: terminalsResp } = useQuery({
+    queryKey: ['agent_terminals_list'],
+    queryFn: () => terminalsService.getTerminals({ per_page: 100 }),
+  });
+  console.log(selectedTerminal);
+  
+
+  const terminalOptions = [{ id: 'all', label: 'All Terminals' }, ...(terminalsResp?.data?.map((t: any) => ({ id: t.id?.toString(), label: t.terminal_id })) || [])];
+
+  const { data: txResp, isLoading } = useQuery({
+    queryKey: ['agent_transactions', currentPage, pageSize, search, selectedTerminal, selectedStatus, dateFrom, dateTo],
+    queryFn: () => {
+      const params: any = { per_page: pageSize, page: currentPage };
+      if (search) params.search = search;
+      if (selectedStatus && selectedStatus !== 'all') params.status = selectedStatus;
+      if (selectedTerminal && selectedTerminal !== 'all') params.terminal_id = selectedTerminal;
+      if (dateFrom) params.start_date = format(dateFrom, 'yyyy-MM-dd');
+      if (dateTo) params.end_date = format(dateTo, 'yyyy-MM-dd');
+      return transactionsService.getTransactions(params);
+    },
+    keepPreviousData: true,
   });
 
-  const totalPages = Math.ceil(filteredTransactions.length / pageSize);
-  const paginatedData = filteredTransactions.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const transactions = txResp?.data ?? [];
+  const meta = txResp?.meta ?? { current_page: 1, last_page: 1, per_page: pageSize, total: transactions.length };
+  const totalPages = meta.last_page || 1;
+
+  const paginatedData = transactions;
 
   return (
     <div>
@@ -138,7 +107,7 @@ export default function AgentTransactions() {
             <SelectValue placeholder="Terminal" />
           </SelectTrigger>
           <SelectContent>
-            {terminals.map(t => (
+            {terminalOptions.map(t => (
               <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
             ))}
           </SelectContent>
@@ -193,15 +162,17 @@ export default function AgentTransactions() {
       <DataTable
         columns={columns}
         data={paginatedData}
+        isLoading={isLoading}
         emptyMessage="No transactions found"
       />
 
       <TablePagination
         currentPage={currentPage}
         totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        totalItems={filteredTransactions.length}
         pageSize={pageSize}
+        totalItems={meta.total || 0}
+        onPageChange={(p) => setCurrentPage(Math.max(1, Math.min(totalPages, p)))}
+        onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
       />
     </div>
   );

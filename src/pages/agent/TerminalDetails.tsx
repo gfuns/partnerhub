@@ -7,65 +7,28 @@ import { DataTable } from '@/components/DataTable';
 import { ActionButton } from '@/components/ActionButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Mock terminal data
-const terminalData = {
-  terminalId: 'TRM-001',
-  status: 'online',
-  lastSeen: '2024-01-15 14:32:00',
-  partner: 'Page Financials',
-  todayTransactions: 45,
-  todayVolume: '₦125,000',
-  successRate: '97.8%',
-  assignedDate: '2024-01-01',
-};
-
-const recentTransactions = [
-  { id: 'TXN-001234', amount: '₦25,000', status: 'success', date: '2024-01-15 14:32', type: 'Transfer' },
-  { id: 'TXN-001235', amount: '₦150,000', status: 'success', date: '2024-01-15 14:28', type: 'Withdrawal' },
-  { id: 'TXN-001236', amount: '₦8,500', status: 'error', date: '2024-01-15 14:25', type: 'Transfer' },
-  { id: 'TXN-001237', amount: '₦45,000', status: 'success', date: '2024-01-15 14:20', type: 'Deposit' },
-  { id: 'TXN-001238', amount: '₦12,000', status: 'success', date: '2024-01-15 14:15', type: 'Transfer' },
-];
-
-const columns = [
-  { 
-    key: 'id', 
-    header: 'Transaction ID',
-    render: (item: typeof recentTransactions[0]) => (
-      <span className="font-mono text-sm">{item.id}</span>
-    ),
-  },
-  { key: 'type', header: 'Type' },
-  { 
-    key: 'amount', 
-    header: 'Amount',
-    render: (item: typeof recentTransactions[0]) => (
-      <span className="font-medium">{item.amount}</span>
-    ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (item: typeof recentTransactions[0]) => (
-      <StatusBadge status={item.status as 'success' | 'error'} size="sm" />
-    ),
-  },
-  { key: 'date', header: 'Date' },
-  {
-    key: 'actions',
-    header: '',
-    className: 'w-12',
-    render: (item: typeof recentTransactions[0]) => (
-      <Link to={`/agent/transactions/${item.id}`}>
-        <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
-      </Link>
-    ),
-  },
-];
+import { useQuery } from '@tanstack/react-query';
+import terminalsService from '@/services/api/terminals.service';
 
 export default function AgentTerminalDetails() {
   const { id } = useParams();
+
+  const { data: terminalResp, isLoading: loadingTerminal } = useQuery({
+    queryKey: ['terminal', id],
+    queryFn: () => terminalsService.getTerminal(id!),
+    enabled: !!id,
+  });
+
+  const terminal = terminalResp?.data?.terminal;
+  const stats = terminalResp?.data?.stats;
+
+  const { data: txResp, isLoading: loadingTx } = useQuery({
+    queryKey: ['terminal_tx', id],
+    queryFn: () => terminalsService.getRecentTransactions(id!),
+    enabled: !!id,
+  });
+
+  const transactions = txResp?.data ?? [];
 
   return (
     <div>
@@ -79,8 +42,8 @@ export default function AgentTerminalDetails() {
       </div>
 
       <PageHeader
-        title={`Terminal ${id || terminalData.terminalId}`}
-        description="View terminal details and recent activity."
+        title={`Terminal ${terminal?.terminal_id ?? id}`}
+        description={terminal?.name ?? 'View terminal details and recent activity.'}
       />
 
       {/* Overview Card */}
@@ -92,24 +55,24 @@ export default function AgentTerminalDetails() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Terminal ID</p>
-              <p className="text-lg font-mono font-medium">{terminalData.terminalId}</p>
+              <p className="text-lg font-mono font-medium">{terminal?.terminal_id ?? '—'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
               <div className="mt-1">
-                <StatusBadge status={terminalData.status as 'online' | 'offline'} />
+                <StatusBadge status={terminal?.status === 'active' ? 'online' : 'offline'} />
               </div>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Last Heartbeat</p>
               <p className="text-lg font-medium flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                {terminalData.lastSeen}
+                {terminal?.last_seen_at ? new Date(terminal.last_seen_at).toLocaleString() : '—'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Assigned Partner</p>
-              <p className="text-lg font-medium">{terminalData.partner}</p>
+              <p className="text-sm text-muted-foreground">Assigned Agent</p>
+              <p className="text-lg font-medium">{terminal?.agent?.business_name ?? '—'}</p>
             </div>
           </div>
         </CardContent>
@@ -119,17 +82,17 @@ export default function AgentTerminalDetails() {
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         <StatCard
           title="Today's Transactions"
-          value={terminalData.todayTransactions.toString()}
+          value={String(stats?.today?.transactions ?? terminal?.today_transaction_count ?? 0)}
           icon={Receipt}
         />
         <StatCard
           title="Today's Volume"
-          value={terminalData.todayVolume}
+          value={(stats?.today?.volume ?? terminal?.today_transaction_volume ?? 0).toString()}
           icon={CreditCard}
         />
         <StatCard
           title="Success Rate"
-          value={terminalData.successRate}
+          value={stats ? `${Math.round((stats.today.successful / Math.max(1, stats.today.transactions)) * 100)}%` : '—'}
           icon={TrendingUp}
         />
       </div>
@@ -139,13 +102,21 @@ export default function AgentTerminalDetails() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base font-medium">Recent Transactions</CardTitle>
           <Button variant="ghost" size="sm" asChild>
-            <Link to={`/agent/transactions?terminal=${terminalData.terminalId}`}>View All</Link>
+            <Link to={`/agent/transactions?terminal=${terminal?.id ?? ''}`}>View All</Link>
           </Button>
         </CardHeader>
         <CardContent>
-          <DataTable 
-            columns={columns} 
-            data={recentTransactions} 
+          <DataTable
+            columns={[
+              { key: 'trx', header: 'Ref', render: (t: any) => <span className="font-mono text-sm">{t.trx ?? t.ref}</span> },
+              { key: 'type', header: 'Type', render: (t: any) => t.type_name ?? t.type == '1' ? 'CREDIT' : 'DEBIT' },
+              { key: 'amount', header: 'Amount', render: (t: any) => <span className="font-medium">{t.amount_formatted ?? t.amount}</span> },
+              { key: 'status', header: 'Status', render: (t: any) => <StatusBadge status={t.status === 'success' || t.status.includes('success') ? 'success' : 'error'} size="sm" /> },
+              { key: 'created_at', header: 'Date', render: (t: any) => new Date(t.created_at).toLocaleString() },
+              { key: 'actions', header: '', className: 'w-12', render: (t: any) => (<Link to={`/agent/transactions/${t.id}`}><ActionButton icon={Eye} tooltip="View Details" variant="ghost" /></Link>) },
+            ]}
+            data={transactions}
+            isLoading={loadingTx}
             emptyMessage="No transactions yet"
           />
         </CardContent>
