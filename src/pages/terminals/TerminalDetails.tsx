@@ -506,7 +506,7 @@ export default function TerminalDetails() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          {/* <TabsTrigger value="commissions">Commissions</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -548,17 +548,18 @@ export default function TerminalDetails() {
                   />
                 }
               />
+              <DetailRow label="Balance" value={<span className="font-medium">{formatCurrency(parseFloat(terminal.balance || '0'))}</span>} />
               <DetailRow label="Created" value={formatDate(terminal.created_at)} />
               {terminal.assigned_at && (
                 <DetailRow label="Assigned On" value={formatDate(terminal.assigned_at)} />
               )}
             </DetailCard>
 
-            <DetailCard title="Agent Information">
+            <DetailCard title="Merchant Information">
               {terminal.agent ? (
                 <>
                   <DetailRow label="Business Name" value={terminal.agent.business_name} />
-                  <DetailRow label="Agent Code" value={terminal.agent.code} />
+                  <DetailRow label="Merchant Code" value={terminal.agent.code} />
                   {terminal.agent.contact_name && (
                     <DetailRow label="Contact Name" value={terminal.agent.contact_name} />
                   )}
@@ -622,7 +623,7 @@ export default function TerminalDetails() {
 
           {stats?.last_transaction && (
             <DetailCard title="Last Transaction">
-              <DetailRow label="Transaction ID" value={<span className="font-mono">{stats.last_transaction.tran_id}</span>} />
+              <DetailRow label="Transaction ID" value={<span className="font-mono">{stats.last_transaction.ref}</span>} />
               <DetailRow label="Amount" value={formatCurrency(stats.last_transaction.amount)} />
               <DetailRow
                 label="Status"

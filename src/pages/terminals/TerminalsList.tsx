@@ -84,7 +84,7 @@ export default function TerminalsList() {
       const response = await agentsService.getAgents({ per_page: 1000 });
       setAgents(response.data.map((a: any) => ({ id: String(a.id), name: a.business_name })));
     } catch (error) {
-      console.error('Failed to load agents:', error);
+      console.error('Failed to load merchants:', error);
     }
   };
 
@@ -196,7 +196,7 @@ export default function TerminalsList() {
     },
     {
       key: 'agent',
-      header: 'Agent',
+      header: 'Merchant',
       render: (item: Terminal) => (
         <span>{item.agent?.business_name || 'Unassigned'}</span>
       ),
@@ -209,6 +209,13 @@ export default function TerminalsList() {
           status={item.status === 'active' ? 'online' : item.status === 'revoked' ? 'revoked' : 'offline'} 
           size="sm" 
         />
+      ),
+    },
+    { 
+      key: 'terminal_balance', 
+      header: "Terminal Balance",
+      render: (item: Terminal) => (
+        <span className="font-medium">{formatCurrency(item.balance)}</span>
       ),
     },
     { 
@@ -357,7 +364,7 @@ export default function TerminalsList() {
         open={reassignModalOpen}
         onOpenChange={setReassignModalOpen}
         title="Reassign Terminal"
-        description={`Select a new agent for ${selectedTerminal?.terminal_id}`}
+        description={`Select a new merchant for ${selectedTerminal?.terminal_id}`}
         agents={agents}
         currentAgentId={selectedTerminal?.agent_id?.toString()}
         onConfirm={handleReassign}

@@ -198,7 +198,7 @@ export default function Login() {
                       : 'border-border bg-background text-muted-foreground hover:bg-secondary'
                   }`}
                 >
-                  Agent (Terminal Owner)
+                  Merchant (Terminal Owner)
                 </button>
               </div>
             </div>

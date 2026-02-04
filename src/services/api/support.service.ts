@@ -82,10 +82,20 @@ class SupportService {
   async createAgentTicket(data: CreateTicketRequest): Promise<CreateTicketResponse> {
     if (data.attachments && data.attachments.length > 0) {
       const formData = new FormData();
-      formData.append('category_id', data.category_id.toString());
+      const categoryId = (data as any).support_category_id ?? (data as any).category_id;
+      if (categoryId) formData.append('support_category_id', String(categoryId));
       formData.append('subject', data.subject);
       formData.append('description', data.description);
       if (data.terminal_id) formData.append('terminal_id', data.terminal_id.toString());
+      if ((data as any).origin) formData.append('origin', (data as any).origin);
+      const disputed = (data as any).disputed_amount ?? (data as any).amount;
+      const txs = (data as any).transactions ?? (data as any).transaction_ids;
+      if (disputed) formData.append('disputed_amount', String(disputed));
+      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
+      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if (txs && Array.isArray(txs)) {
+        txs.forEach((id: any) => formData.append('transactions[]', String(id)));
+      }
       if (data.priority) formData.append('priority', data.priority);
       data.attachments.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file);
@@ -131,11 +141,21 @@ class SupportService {
   async createPartnerTicket(data: CreateTicketRequest): Promise<CreateTicketResponse> {
     if (data.attachments && data.attachments.length > 0) {
       const formData = new FormData();
-      formData.append('category_id', data.category_id.toString());
+      const categoryId = (data as any).support_category_id ?? (data as any).category_id;
+      if (categoryId) formData.append('support_category_id', String(categoryId));
       formData.append('subject', data.subject);
       formData.append('description', data.description);
       if (data.agent_id) formData.append('agent_id', data.agent_id.toString());
       if (data.terminal_id) formData.append('terminal_id', data.terminal_id.toString());
+      if ((data as any).origin) formData.append('origin', (data as any).origin);
+      const disputedP = (data as any).disputed_amount ?? (data as any).amount;
+      const txsP = (data as any).transactions ?? (data as any).transaction_ids;
+      if (disputedP) formData.append('disputed_amount', String(disputedP));
+      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
+      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if (txsP && Array.isArray(txsP)) {
+        txsP.forEach((id: any) => formData.append('transactions[]', String(id)));
+      }
       if (data.priority) formData.append('priority', data.priority);
       data.attachments.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file);
@@ -143,6 +163,45 @@ class SupportService {
       return apiService.postMultipart('/support/tickets', formData);
     }
     return apiService.post('/support/tickets', data);
+  }
+
+  /**
+   * Convenience createTicket - POST /api/{context}/support/tickets
+   * Uses ApiService prefix to target agent or partner hub based on login type
+   */
+  async createTicket(data: CreateTicketRequest): Promise<CreateTicketResponse> {
+    if (data.attachments && data.attachments.length > 0) {
+      const formData = new FormData();
+      const categoryId = (data as any).support_category_id ?? (data as any).category_id;
+      if (categoryId) formData.append('support_category_id', String(categoryId));
+      formData.append('subject', data.subject);
+      formData.append('description', data.description);
+      if (data.agent_id) formData.append('agent_id', data.agent_id.toString());
+      if (data.terminal_id) formData.append('terminal_id', data.terminal_id.toString());
+      if ((data as any).origin) formData.append('origin', (data as any).origin);
+      const disputedT = (data as any).disputed_amount ?? (data as any).amount;
+      const txsT = (data as any).transactions ?? (data as any).transaction_ids;
+      if (disputedT) formData.append('disputed_amount', String(disputedT));
+      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
+      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if (txsT && Array.isArray(txsT)) {
+        txsT.forEach((id: any) => formData.append('transactions[]', String(id)));
+      }
+      if (data.priority) formData.append('priority', data.priority);
+      data.attachments.forEach((file, index) => {
+        formData.append(`attachments[${index}]`, file);
+      });
+      return apiService.postMultipart('/support/tickets', formData);
+    }
+    return apiService.post('/support/tickets', data);
+  }
+
+  /**
+   * Generic tickets list endpoint that works for agent or partner context
+   */
+  async getTickets(params?: Record<string, any>): Promise<TicketListResponse> {
+    const queryString = params ? apiService.buildQueryString(params) : '';
+    return apiService.get(`/support/tickets${queryString}`);
   }
 
   /**

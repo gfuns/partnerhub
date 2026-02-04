@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, LogOut } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranding } from '@/contexts/BrandingContext';
+import { brandingService } from '@/services/api/branding.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +15,33 @@ export default function ChangePassword() {
   const navigate = useNavigate();
   const { user, authState, changePassword, logout, isLoading } = useAuth();
   const { toast } = useToast();
+  const { setBranding, getAssetUrl, branding: ctxBranding } = useBranding();
+
+  const [remoteBranding, setRemoteBranding] = useState<any | null>(null);
+  const [remotePartner, setRemotePartner] = useState<any | null>(null);
+
+  const fetchBranding = useCallback(async () => {
+    try {
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      const parts = host.split('.').filter(Boolean);
+      const subdomain = parts.length >= 3 ? parts[0] : '';
+
+      const resp = await brandingService.getBrandingBySubdomain(subdomain);
+      if (resp && resp.success && resp.data) {
+        const payload = (resp.data.branding) ? resp.data.branding : resp.data;
+        setRemoteBranding(payload);
+        if (resp.data.partner) setRemotePartner(resp.data.partner);
+        setBranding(payload as any);
+      }
+    } catch (err) {
+      // ignore branding fetch failures
+      console.warn('Branding fetch failed', err);
+    }
+  }, [setBranding]);
+
+  useEffect(() => {
+    fetchBranding();
+  }, [fetchBranding]);
 
   const [formData, setFormData] = useState({
     currentPassword: '',
@@ -144,34 +173,51 @@ export default function ChangePassword() {
     setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
+  const activeBranding = remoteBranding || ctxBranding || {};
+  const logoUrl = getAssetUrl(remotePartner?.logo_url ?? activeBranding.logo_url);
+
   return (
-    <div className="min-h-screen flex">
+    <div
+      className="min-h-screen flex"
+      style={{ background: activeBranding.login_bg_color || undefined, fontFamily: activeBranding.font_family || undefined }}
+    >
       {/* Left panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-sidebar items-center justify-center p-12">
+      <div
+        className="hidden lg:flex lg:w-1/2 items-center justify-center p-12"
+        style={{ background: activeBranding.sidebar_bg_color || undefined, color: activeBranding.sidebar_text_color || undefined }}
+      >
         <div className="max-w-md text-center">
           <div className="mb-8 flex justify-center">
-            <Logo variant="light" size="lg" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={remotePartner?.name || 'Logo'} className="h-16 w-auto object-contain" />
+            ) : (
+              <Logo variant="light" size="lg" />
+            )}
           </div>
-          <h1 className="text-3xl font-semibold text-sidebar-primary mb-4">
+          <h1 className="text-3xl font-semibold mb-4" style={{ color: activeBranding.sidebar_text_color || undefined }}>
             Secure Your Account
           </h1>
-          <p className="text-sidebar-foreground text-lg">
+          <p className="text-lg" style={{ color: activeBranding.sidebar_text_color || undefined }}>
             For security reasons, you must change your password before continuing.
           </p>
         </div>
       </div>
 
       {/* Right panel - Password Change Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12" style={{ background: activeBranding.login_bg_color || undefined }}>
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8 flex justify-center">
-            <Logo size="lg" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={remotePartner?.name || 'Logo'} className="h-12 w-auto object-contain" />
+            ) : (
+              <Logo size="lg" />
+            )}
           </div>
 
-          <Card>
+          <Card style={{ background: activeBranding.login_card_bg_color || undefined, boxShadow: activeBranding.box_shadow || undefined }}>
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
+              <CardTitle style={{ color: activeBranding.text_primary_color || undefined }}>Change Password</CardTitle>
+              <CardDescription style={{ color: activeBranding.text_secondary_color || undefined }}>
                 Please create a new secure password to continue
               </CardDescription>
             </CardHeader>
@@ -311,6 +357,25 @@ export default function ChangePassword() {
               className="w-full"
               size="lg"
               disabled={isLoading}
+              style={{
+                background: activeBranding.btn_primary_bg_color || undefined,
+                color: activeBranding.btn_primary_text_color || undefined,
+                borderRadius: activeBranding.border_radius || undefined,
+                fontFamily: activeBranding.font_family || undefined,
+                boxShadow: activeBranding.box_shadow || undefined,
+                border: activeBranding.btn_primary_bg_color ? 'none' : undefined,
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={e => {
+                if (activeBranding.btn_primary_hover_bg_color) {
+                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_hover_bg_color;
+                }
+              }}
+              onMouseOut={e => {
+                if (activeBranding.btn_primary_bg_color) {
+                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_bg_color;
+                }
+              }}
             >
               {isLoading ? 'Changing Password...' : 'Change Password'}
             </Button>
@@ -321,6 +386,7 @@ export default function ChangePassword() {
               variant="outline"
               className="w-full"
               onClick={handleLogout}
+              style={{ borderRadius: activeBranding.border_radius || undefined }}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Logout Instead

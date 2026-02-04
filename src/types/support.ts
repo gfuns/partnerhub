@@ -24,9 +24,19 @@ export interface TicketCategory {
   description?: string;
   requires_terminal: boolean;
   requires_agent: boolean;
+  requires_transaction?: boolean;
+  allows_multiple_transactions?: boolean;
+  requires_amount?: boolean;
+  requires_date_range?: boolean;
+  requires_evidence?: boolean;
+  evidence_types?: string[];
+  auto_priority?: TicketPriority | string;
+  auto_assignment?: string;
   default_priority: TicketPriority;
   sla_hours?: number;
   is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Ticket Attachment
@@ -60,6 +70,8 @@ export interface TicketAgentInfo {
   contact_name: string;
   contact_email: string;
   contact_phone: string;
+  name?: string;
+  phone?: string;
 }
 
 // Terminal Info (simplified)
@@ -82,6 +94,7 @@ export interface TicketPartnerInfo {
 export interface Ticket {
   id: number;
   ticket_number: string;
+  ticket_ref?: string;
   origin: TicketOrigin;
   category_id: number;
   category: TicketCategory;
@@ -90,6 +103,8 @@ export interface Ticket {
   status: TicketStatus;
   priority: TicketPriority;
   assigned_to_type: AssignmentType;
+  assigned_to_partner_id?: number;
+  assigned_to_xtrapay_user_id?: number;
   // Relationships
   partner_id: number;
   partner?: TicketPartnerInfo;
@@ -101,11 +116,26 @@ export interface Ticket {
   created_by_type: 'agent' | 'partner' | 'xtrapay';
   created_by_id: number;
   created_by_name: string;
+  opened_by_type?: string;
+  opened_by_id?: number;
+  // Closure info
+  closed_by_type?: string;
+  closed_by_id?: number;
+  closed_reason?: string;
+  // Financial info
+  disputed_amount?: number;
+  expected_amount?: number;
+  customer_charged_amount?: number;
+  settlement_impact_amount?: number;
+  // Escalation
+  escalated_to_xtrapay_at?: string;
+  escalated_by_partner_user_id?: number;
   // Timestamps
   created_at: string;
   updated_at: string;
   resolved_at?: string;
   closed_at?: string;
+  last_response_at?: string;
   // Counts
   message_count: number;
   unread_count?: number;
@@ -135,6 +165,16 @@ export interface TicketListItem {
 export interface TicketDetail extends Ticket {
   messages: TicketMessage[];
   attachments: TicketAttachment[];
+  internal_notes?: TicketMessage[];
+  transactions?: Array<{
+    id: number;
+    transaction_id: string;
+    amount: number;
+    rrn: string;
+    stan: string;
+    status: string;
+    created_at: string;
+  }>;
 }
 
 // =====================================================

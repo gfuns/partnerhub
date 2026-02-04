@@ -263,7 +263,7 @@ export default function KycReview() {
 
       toast({
         title: 'Corrections Requested',
-        description: 'The agent has been notified about required corrections.',
+        description: 'The merchant has been notified about required corrections.',
       });
 
       setCorrectionsDialogOpen(false);
@@ -328,7 +328,7 @@ export default function KycReview() {
               </div>
               <div>
                 <h3 className="text-xl font-semibold">{kycDetails.agent.business_name}</h3>
-                <p className="text-sm text-muted-foreground">Agent Code: {kycDetails.agent.code}</p>
+                <p className="text-sm text-muted-foreground">Merchant Code: {kycDetails.agent.code}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant="outline" className="capitalize">
                     {BUSINESS_TYPE_LABELS[kycDetails.business_type]}

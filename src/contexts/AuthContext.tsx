@@ -763,7 +763,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    console.warn('useAuth called outside AuthProvider — returning fallback context');
+    const fallback: AuthContextType = {
+      user: null,
+      partner: DEFAULT_PARTNER,
+      partnerData: null,
+      branding: DEFAULT_BRANDING,
+      authState: { requiresPasswordChange: false, requiresContextSelection: false, requiresKycOnboarding: false },
+      isAuthenticated: false,
+      isLoading: true,
+      pendingContexts: null,
+      authenticate: async () => { throw new Error('No AuthProvider available'); },
+      selectContext: async () => { throw new Error('No AuthProvider available'); },
+      changePassword: async () => { throw new Error('No AuthProvider available'); },
+      logout: async () => {},
+      hasPermission: () => false,
+      updateKycStatus: () => {},
+      getAssetUrl: getAssetUrl,
+    };
+    return fallback;
   }
   return context;
 }

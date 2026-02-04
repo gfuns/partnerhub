@@ -62,7 +62,7 @@ export default function AgentsList() {
       setTotalItems(response.meta.total);
       setTotalPages(response.meta.last_page);
     } catch (error: any) {
-      sonnerToast.error('Failed to load agents', {
+      sonnerToast.error('Failed to load merchants', {
         description: error.message || 'Please try again',
       });
     } finally {
@@ -80,7 +80,7 @@ export default function AgentsList() {
       setSelectedAgent(null);
       fetchAgents();
     } catch (error: any) {
-      sonnerToast.error('Failed to update agent status', {
+      sonnerToast.error('Failed to update merchants status', {
         description: error.message || 'Please try again',
       });
     }
@@ -89,7 +89,7 @@ export default function AgentsList() {
   const columns = [
     { 
       key: 'code', 
-      header: 'Agent Code',
+      header: 'Merchant Code',
       render: (item: Agent) => (
         <span className="font-mono font-medium">{item.code}</span>
       ),
@@ -138,20 +138,20 @@ export default function AgentsList() {
         <div className="flex items-center gap-1">
           <ActionButton
             icon={Eye}
-            label="View Agent"
+            label="View Merchant"
             onClick={() => navigate(`/agents/${item.id}`)}
           />
           {hasPermission('agents.edit') && item.kyc_status !== 'pending_onboarding' && (
             <ActionButton
               icon={Edit}
-              label="Edit Agent"
+              label="Edit Merchant"
               onClick={() => navigate(`/agents/${item.id}/edit`)}
             />
           )}
           {hasPermission('agents.edit') && item.status !== 'pending' && item.kyc_status !== 'pending_onboarding' && item.kyc_status !== 'pending_correction' && (
             <ActionButton
               icon={Ban}
-              label={item.status === 'suspended' ? 'Activate Agent' : 'Suspend Agent'}
+              label={item.status === 'suspended' ? 'Activate Merchant' : 'Suspend Merchant'}
               onClick={() => {
                 setSelectedAgent(item);
                 setToggleDialogOpen(true);
@@ -181,13 +181,13 @@ export default function AgentsList() {
   return (
     <div>
       <PageHeader
-        title="Agents"
-        description="Manage your terminal agents and their assignments."
+        title="Merchants"
+        description="Manage your terminal merchants and their assignments."
         actions={
           <PermissionGate permission="agents.create">
             <Button onClick={() => navigate('/agents/new')}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Agent
+              Create Merchant
             </Button>
           </PermissionGate>
         }
@@ -197,7 +197,7 @@ export default function AgentsList() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search agents..."
+            placeholder="Search merchants..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -240,14 +240,14 @@ export default function AgentsList() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading agents...</div>
+          <div className="text-muted-foreground">Loading merchants...</div>
         </div>
       ) : (
         <>
           <DataTable
             columns={columns}
             data={agents}
-            emptyMessage="No agents found"
+            emptyMessage="No merchants found"
           />
 
           <TablePagination
@@ -267,7 +267,7 @@ export default function AgentsList() {
       <ConfirmDialog
         open={toggleDialogOpen}
         onOpenChange={setToggleDialogOpen}
-        title={selectedAgent?.status === 'suspended' ? 'Activate Agent' : 'Suspend Agent'}
+        title={selectedAgent?.status === 'suspended' ? 'Activate Merchant' : 'Suspend Merchant'}
         description={
           selectedAgent?.status === 'suspended'
             ? `Are you sure you want to activate ${selectedAgent?.business_name}? They will be able to process transactions again.`

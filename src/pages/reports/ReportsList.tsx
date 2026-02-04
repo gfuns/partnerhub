@@ -56,8 +56,8 @@ const reportTypes = [
   },
   {
     id: 'agents',
-    title: 'Agent Performance',
-    description: 'Agent-level KPIs and earnings',
+    title: 'Merchants Performance',
+    description: 'Merchant-level KPIs and earnings',
     icon: Users,
     route: '/reports/agents',
     lastGenerated: '2024-01-16 23:59',

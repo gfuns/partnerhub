@@ -32,7 +32,7 @@ interface NavItem {
 
 const partnerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
-  { label: 'Agents', href: '/agents', icon: Users, permission: 'agents.view' },
+  { label: 'Merchants', href: '/agents', icon: Users, permission: 'agents.view' },
   { label: 'KYC Review', href: '/kyc-review/agents', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
@@ -40,8 +40,8 @@ const partnerNavItems: NavItem[] = [
   { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
   { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
   { label: 'Reports', href: '/reports', icon: FileText, permission: 'reports.view' },
-  // { label: 'Support', href: '/support', icon: FileText },
-  { label: 'Monitoring', href: '/monitoring', icon: Activity, permission: 'monitoring.view' },
+  { label: 'Support', href: '/support', icon: FileText },
+  // { label: 'Monitoring', href: '/monitoring', icon: Activity, permission: 'monitoring.view' },
   { label: 'Users', href: '/users', icon: Users, permission: 'users.view' },
   { label: 'Settings', href: '/settings', icon: Settings, permission: 'settings.view' },
 ];
@@ -50,7 +50,7 @@ const agentNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
   { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/agent/transactions', icon: Receipt, permission: 'transactions.view' },
-  // { label: 'Support', href: '/support', icon: FileText },
+  { label: 'Support', href: '/support', icon: FileText },
   // { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
   // { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
   { label: 'Profile', href: '/profile', icon: UserCircle }, // No permission required
