@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Edit, Ban, CreditCard, UserPlus } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Ban, CreditCard, UserPlus, Users, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -28,6 +29,7 @@ export default function AgentsList() {
   const { hasPermission } = useAuth();
   
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -59,6 +61,7 @@ export default function AgentsList() {
 
       const response = await agentsService.getAgents(params);
       setAgents(response.data);
+      setStats(response.stats || null);
       setTotalItems(response.meta.total);
       setTotalPages(response.meta.last_page);
     } catch (error: any) {
@@ -192,6 +195,33 @@ export default function AgentsList() {
           </PermissionGate>
         }
       />
+
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          <StatCard
+            title="Total Merchants"
+            value={stats.total || 0}
+            icon={Users}
+            subtitle={`${stats.recent_30_days || 0} added in last 30 days`}
+          />
+          <StatCard
+            title="Active"
+            value={stats.active || 0}
+            icon={CheckCircle}
+            subtitle={`${stats.with_terminals || 0} with terminals`}
+          />
+          <StatCard
+            title="Pending KYC"
+            value={stats.pending_kyc || 0}
+            icon={Clock}
+          />
+          <StatCard
+            title="Suspended"
+            value={stats.suspended || 0}
+            icon={XCircle}
+          />
+        </div>
+      )}
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">

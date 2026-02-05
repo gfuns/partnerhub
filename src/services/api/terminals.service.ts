@@ -283,6 +283,14 @@ class TerminalsService {
   async assignBySerial(data: AssignBySerialRequest): Promise<any> {
     return apiService.post('/terminals/assign-by-serial', data);
   }
+
+  /**
+   * Add virtual account to terminal
+   * POST /api/partner-hub/terminals/{id}/add-virtual-account
+   */
+  async addVirtualAccount(terminalId: number | string, data: { bank_id: number; account_number: string; account_name: string }): Promise<any> {
+    return apiService.post(`/terminals/${terminalId}/add-virtual-account`, data);
+  }
 }
 
 export const terminalsService = new TerminalsService();

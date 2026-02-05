@@ -294,7 +294,7 @@ export default function SettingsPage() {
 
                     {/* Statistics */}
                     <div className="grid gap-4 md:grid-cols-4">
-                      <div className="rounded-lg border p-4">
+                      {/* <div className="rounded-lg border p-4">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Users className="h-4 w-4" />
                           <span className="text-sm">Agents</span>
@@ -303,15 +303,15 @@ export default function SettingsPage() {
                         <p className="text-xs text-muted-foreground">
                           {statistics?.approved_agents || 0} approved
                         </p>
-                      </div>
-                      <div className="rounded-lg border p-4">
+                      </div> */}
+                      {/* <div className="rounded-lg border p-4">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Terminal className="h-4 w-4" />
                           <span className="text-sm">Terminals</span>
                         </div>
                         <p className="mt-2 text-2xl font-bold">{statistics?.total_terminals || 0}</p>
                         <p className="text-xs text-muted-foreground">assigned</p>
-                      </div>
+                      </div> */}
                       <div className="rounded-lg border p-4">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <FileText className="h-4 w-4" />

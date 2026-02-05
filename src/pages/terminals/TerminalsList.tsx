@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Ban, RefreshCw, FileText } from 'lucide-react';
+import { Plus, Search, Eye, Ban, RefreshCw, FileText, Monitor, CheckCircle, XCircle, Wifi, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
 import { StatusBadge } from '@/components/StatusBadge';
 import { PermissionGate } from '@/components/PermissionGate';
@@ -31,6 +32,7 @@ export default function TerminalsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +68,7 @@ export default function TerminalsList() {
 
       const response = await terminalsService.getTerminals(params);
       setTerminals(response.data);
+      setStats(response.stats || null);
       setTotalPages(response.meta.last_page);
       setTotalItems(response.meta.total);
     } catch (error: any) {
@@ -206,7 +209,7 @@ export default function TerminalsList() {
       header: 'Status',
       render: (item: Terminal) => (
         <StatusBadge 
-          status={item.status === 'active' ? 'online' : item.status === 'revoked' ? 'revoked' : 'offline'} 
+          status={item.status === 'active' ? 'Active' : item.status === 'revoked' ? 'Revoked' : 'Inactive'} 
           size="sm" 
         />
       ),
@@ -290,6 +293,35 @@ export default function TerminalsList() {
           </PermissionGate>
         }
       />
+
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          <StatCard
+            title="Total Terminals"
+            value={stats.total || 0}
+            icon={Monitor}
+            subtitle={`${stats.recent_30_days || 0} added in last 30 days`}
+          />
+          <StatCard
+            title="Active"
+            value={stats.active || 0}
+            icon={CheckCircle}
+            subtitle={`${stats.assigned || 0} assigned`}
+          />
+          <StatCard
+            title="Unassigned"
+            value={stats.unassigned || 0}
+            icon={XCircle}
+            subtitle={`${stats.with_virtual_accounts || 0} with virtual accounts`}
+          />
+          <StatCard
+            title="Today's Volume"
+            value={`₦${(stats.today?.transaction_volume || 0).toLocaleString()}`}
+            icon={TrendingUp}
+            subtitle={`${stats.today?.transaction_count || 0} transactions`}
+          />
+        </div>
+      )}
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-sm">

@@ -40,8 +40,8 @@ const reportTypes = [
   },
   {
     id: 'commissions',
-    title: 'Commissions',
-    description: 'Commission breakdown and overrides',
+    title: 'Fees Earned',
+    description: 'Fees breakdown and overrides',
     icon: Coins,
     route: '/reports/commissions',
     lastGenerated: '2024-01-18 12:00',
@@ -54,14 +54,14 @@ const reportTypes = [
     route: '/reports/terminals',
     lastGenerated: '2024-01-17 23:59',
   },
-  {
-    id: 'agents',
-    title: 'Merchants Performance',
-    description: 'Merchant-level KPIs and earnings',
-    icon: Users,
-    route: '/reports/agents',
-    lastGenerated: '2024-01-16 23:59',
-  },
+  // {
+  //   id: 'agents',
+  //   title: 'Merchants Performance',
+  //   description: 'Merchant-level KPIs and earnings',
+  //   icon: Users,
+  //   route: '/reports/agents',
+  //   lastGenerated: '2024-01-16 23:59',
+  // },
   {
     id: 'wallet',
     title: 'Wallet & Balance',

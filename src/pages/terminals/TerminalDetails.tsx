@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import terminalsService, { Terminal, TerminalStats, Transaction, TransactionListParams } from '@/services/api/terminals.service';
 import { TablePagination } from '@/components/TablePagination';
 import { commissionService, PartnerCommission, CommissionType } from '@/services/api/commission.service';
+import partnerService from '@/services/api/partner.service';
+import agentsService from '@/services/api/agents.service';
 
 import {
   Dialog,
@@ -40,6 +42,17 @@ export default function TerminalDetails() {
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
   const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
+  const [addVirtualAccountDialogOpen, setAddVirtualAccountDialogOpen] = useState(false);
+
+  // Virtual Account states
+  const [canAssignVirtualAccount, setCanAssignVirtualAccount] = useState(false);
+  const [banks, setBanks] = useState<any[]>([]);
+  const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
+  const [selectedBankCode, setSelectedBankCode] = useState<string>('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
+  const [isAddingVirtualAccount, setIsAddingVirtualAccount] = useState(false);
 
   // Transaction filters
   const [startDate, setStartDate] = useState('');
@@ -89,12 +102,42 @@ export default function TerminalDetails() {
     }
   };
 
+  const checkVirtualAccountPermission = async (partnerId: number) => {
+    try {
+      console.log('Checking virtual account permission, partner_id:', partnerId);
+      
+      console.log('Calling canAssignVirtualAccount API...');
+      const response = await partnerService.canAssignVirtualAccount(partnerId);
+      console.log('canAssignVirtualAccount response:', response);
+      
+      setCanAssignVirtualAccount(response.data?.can_assign ?? false);
+      
+      // Load banks if permission is granted
+      if (response.data?.can_assign) {
+        console.log('Permission granted, loading banks...');
+        const banksResponse = await partnerService.getVirtualBanks(partnerId);
+        console.log('Banks response:', banksResponse);
+        setBanks(banksResponse.data || []);
+      } else {
+        console.log('Permission not granted');
+      }
+    } catch (error: any) {
+      console.error('Error checking virtual account permission:', error);
+      setCanAssignVirtualAccount(false);
+    }
+  };
+
   const loadTerminalDetails = async () => {
     try {
       setLoading(true);
       const response = await terminalsService.getTerminal(id!);
       setTerminal(response.data.terminal);
       setStats(response.data.stats);
+      
+      // Check virtual account permission after terminal is loaded
+      if (response.data.terminal.partner_id) {
+        checkVirtualAccountPermission(response.data.terminal.partner_id);
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -324,6 +367,99 @@ export default function TerminalDetails() {
         description: error.message || 'Failed to unassign terminal',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleVerifyAccount = async () => {
+    if (!accountNumber || !selectedBankCode) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter account number and select bank',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (accountNumber.length !== 10) {
+      toast({
+        title: 'Validation Error',
+        description: 'Account number must be 10 digits',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsVerifyingAccount(true);
+      const response = await agentsService.verifyAccount({
+        account_number: accountNumber,
+        bank_code: selectedBankCode,
+      });
+      setAccountName(response.data.accountName);
+      toast({
+        title: 'Account Verified',
+        description: 'Account details verified successfully',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Verification Failed',
+        description: error.response?.data?.message || 'Failed to verify account',
+        variant: 'destructive',
+      });
+      setAccountName('');
+    } finally {
+      setIsVerifyingAccount(false);
+    }
+  };
+
+  const handleAddVirtualAccount = async () => {
+    if (!terminal || !selectedBankId || !accountNumber || !accountName) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please complete all virtual account fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsAddingVirtualAccount(true);
+      await terminalsService.addVirtualAccount(terminal.id, {
+        bank_id: selectedBankId,
+        account_number: accountNumber,
+        account_name: accountName,
+      });
+      toast({
+        title: 'Success',
+        description: 'Virtual account added successfully',
+      });
+      setAddVirtualAccountDialogOpen(false);
+      resetVirtualAccountFields();
+      loadTerminalDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to add virtual account',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAddingVirtualAccount(false);
+    }
+  };
+
+  const resetVirtualAccountFields = () => {
+    setSelectedBankId(null);
+    setSelectedBankCode('');
+    setAccountNumber('');
+    setAccountName('');
+  };
+
+  const handleBankChange = (value: string) => {
+    const bank = banks.find((b) => b.id === Number(value));
+    
+    if (bank) {
+      setSelectedBankId(bank.id);
+      setSelectedBankCode(bank.bank_slug);
     }
   };
 
@@ -575,7 +711,7 @@ export default function TerminalDetails() {
               )}
             </DetailCard>
 
-            {virtualAccounts.length > 0 && (
+            {virtualAccounts.length > 0 ? (
               <DetailCard title="Virtual Accounts">
                 <div className="space-y-3">
                   {virtualAccounts.map((va: any) => (
@@ -597,6 +733,17 @@ export default function TerminalDetails() {
                   ))}
                 </div>
               </DetailCard>
+            ) : (
+              terminal.agent_id && canAssignVirtualAccount && (
+                <DetailCard title="Virtual Accounts">
+                  <div className="text-center py-6">
+                    <p className="text-muted-foreground mb-4">No virtual account assigned to this terminal</p>
+                    <Button onClick={() => setAddVirtualAccountDialogOpen(true)}>
+                      Add Virtual Account
+                    </Button>
+                  </div>
+                </DetailCard>
+              )
             )}
           </div>
 
@@ -857,6 +1004,80 @@ export default function TerminalDetails() {
         variant="destructive"
         onConfirm={handleUnassign}
       />
+
+      {/* Add Virtual Account Dialog */}
+      <Dialog open={addVirtualAccountDialogOpen} onOpenChange={setAddVirtualAccountDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Virtual Account</DialogTitle>
+            <DialogDescription>
+              Add a virtual account to terminal {terminal.terminal_id} for {terminal.agent?.business_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Bank</Label>
+              <Select value={selectedBankId?.toString() || ''} onValueChange={handleBankChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {banks.map((bank) => (
+                    <SelectItem key={bank.id} value={bank.id.toString()}>
+                      {bank.bank_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Account Number</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder="Enter 10-digit account number"
+                  maxLength={10}
+                />
+                <Button
+                  onClick={handleVerifyAccount}
+                  disabled={!accountNumber || !selectedBankCode || isVerifyingAccount}
+                  variant="outline"
+                >
+                  {isVerifyingAccount ? 'Verifying...' : 'Verify'}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label>Account Name</Label>
+              <Input
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                placeholder="Account name (auto-filled after verification)"
+                readOnly={isVerifyingAccount}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setAddVirtualAccountDialogOpen(false);
+              resetVirtualAccountFields();
+            }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddVirtualAccount}
+              disabled={!selectedBankId || !accountNumber || !accountName || isAddingVirtualAccount}
+            >
+              {isAddingVirtualAccount ? 'Adding...' : 'Add Virtual Account'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
