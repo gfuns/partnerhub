@@ -43,6 +43,7 @@ export default function TerminalDetails() {
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
   const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
   const [addVirtualAccountDialogOpen, setAddVirtualAccountDialogOpen] = useState(false);
+  const [removeVirtualAccountDialogOpen, setRemoveVirtualAccountDialogOpen] = useState(false);
 
   // Virtual Account states
   const [canAssignVirtualAccount, setCanAssignVirtualAccount] = useState(false);
@@ -447,6 +448,26 @@ export default function TerminalDetails() {
     }
   };
 
+  const handleRemoveVirtualAccount = async () => {
+    if (!terminal) return;
+
+    try {
+      await terminalsService.removeVirtualAccount(terminal.id);
+      toast({
+        title: 'Success',
+        description: 'Virtual account removed successfully',
+      });
+      setRemoveVirtualAccountDialogOpen(false);
+      loadTerminalDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to remove virtual account',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const resetVirtualAccountFields = () => {
     setSelectedBankId(null);
     setSelectedBankCode('');
@@ -717,7 +738,7 @@ export default function TerminalDetails() {
                   {virtualAccounts.map((va: any) => (
                     <div key={va.id} className="p-3 rounded-lg border bg-muted/20">
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
+                        <div className="space-y-1 flex-1">
                           <div className="text-xs text-muted-foreground">Bank Name</div>
                           <div className="font-medium">{va.bank_name}</div>
 
@@ -727,7 +748,18 @@ export default function TerminalDetails() {
                           <div className="text-xs text-muted-foreground mt-2">Account Name</div>
                           <div className="text-sm">{(va.account_name.toUpperCase() || '').toString()}</div>
                         </div>
-                        <div className="text-sm text-muted-foreground ml-4">{va.status}</div>
+                        <div className="flex flex-col items-end gap-2 ml-4">
+                          <div className="text-sm text-muted-foreground">{va.status}</div>
+                          {canAssignVirtualAccount && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setRemoveVirtualAccountDialogOpen(true)}
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1078,6 +1110,17 @@ export default function TerminalDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Virtual Account Dialog */}
+      <ConfirmDialog
+        open={removeVirtualAccountDialogOpen}
+        onOpenChange={setRemoveVirtualAccountDialogOpen}
+        title="Remove Virtual Account"
+        description={`Are you sure you want to remove the virtual account from ${terminal.terminal_id}? This action cannot be undone.`}
+        confirmLabel="Remove"
+        variant="destructive"
+        onConfirm={handleRemoveVirtualAccount}
+      />
     </div>
   );
 }

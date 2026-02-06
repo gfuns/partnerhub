@@ -306,9 +306,9 @@ export interface TicketStatsResponse {
 export const TICKET_STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
   { value: 'open', label: 'Open' },
   { value: 'in_progress', label: 'In Progress' },
-  { value: 'awaiting_partner', label: 'Awaiting Partner' },
-  { value: 'awaiting_xtrapay', label: 'Awaiting Xtrapay' },
-  { value: 'awaiting_agent', label: 'Awaiting Agent' },
+  // { value: 'awaiting_partner', label: 'Awaiting Partner' },
+  // { value: 'awaiting_xtrapay', label: 'Awaiting Xtrapay' },
+  // { value: 'awaiting_agent', label: 'Awaiting Agent' },
   { value: 'resolved', label: 'Resolved' },
   { value: 'closed', label: 'Closed' },
   { value: 'canceled', label: 'Canceled' },

@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supportService } from '@/services/api/support.service';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +9,7 @@ import { useState, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { DetailCard, DetailRow } from '@/components/DetailCard';
-import { AlertTriangle, CheckCircle2, XCircle, Clock, ArrowUpCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Clock, ArrowUpCircle, File, Image, FileText, Paperclip } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ export default function TicketDetail() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
   const [internalNote, setInternalNote] = useState('');
@@ -42,7 +44,7 @@ export default function TicketDetail() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusComment, setStatusComment] = useState('');
   const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
-  const [escalateReason, setEscalateReason] = useState('');
+  const [escalateReason, setEscalateReason] = useState('');  
 
   const { data, isLoading } = useQuery({
     queryKey: ['support_ticket', id],
@@ -229,7 +231,7 @@ export default function TicketDetail() {
           <p className="text-sm text-muted-foreground mt-1">{ticket.category?.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          {canEscalate && (
+          {canEscalate && user?.loginType === 'partner' && (
             <Button variant="outline" size="sm" onClick={() => setEscalateDialogOpen(true)}>
               <ArrowUpCircle className="h-4 w-4 mr-2" />
               Escalate to Xtrapay
@@ -285,11 +287,39 @@ export default function TicketDetail() {
                       </div>
                       <div className="text-sm whitespace-pre-wrap">{m.message}</div>
                       {m.attachments && m.attachments.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium">Attachments:</div>
-                          {m.attachments.map((a: any) => (
-                            <a key={a.id} href={a.file_url} target="_blank" rel="noreferrer" className="text-sm text-primary block hover:underline">{a.file_name}</a>
-                          ))}
+                        <div className="mt-3 space-y-2">
+                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" />
+                            Attachments ({m.attachments.length}):
+                          </div>
+                          <div className="space-y-1.5">
+                            {m.attachments.map((a: any) => {
+                              const fileName = a.file_path?.split('/').pop() || 'attachment';
+                              const isImage = a.file_type?.startsWith('image/');
+                              const isPdf = a.file_type === 'application/pdf';
+                              return (
+                                <a 
+                                  key={a.id} 
+                                  href={a.full_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="flex items-center gap-2 text-sm text-primary hover:underline p-2 rounded border hover:bg-muted/50 transition-colors"
+                                >
+                                  {isImage ? (
+                                    <Image className="h-4 w-4 flex-shrink-0" />
+                                  ) : isPdf ? (
+                                    <FileText className="h-4 w-4 flex-shrink-0" />
+                                  ) : (
+                                    <File className="h-4 w-4 flex-shrink-0" />
+                                  )}
+                                  <span className="truncate">{fileName}</span>
+                                  <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
+                                    {(a.file_size / 1024).toFixed(1)} KB
+                                  </span>
+                                </a>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -330,13 +360,41 @@ export default function TicketDetail() {
                         </div>
                         <Badge variant="secondary">Internal</Badge>
                       </div>
-                      <div className="text-sm whitespace-pre-wrap">{note.message}</div>
+                      <div className="text-sm whitespace-pre-wrap">{note?.note}</div>
                       {note.attachments && note.attachments.length > 0 && (
-                        <div className="mt-3 space-y-1">
-                          <div className="text-xs text-muted-foreground font-medium">Attachments:</div>
-                          {note.attachments.map((a: any) => (
-                            <a key={a.id} href={a.file_url} target="_blank" rel="noreferrer" className="text-sm text-primary block hover:underline">{a.file_name}</a>
-                          ))}
+                        <div className="mt-3 space-y-2">
+                          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" />
+                            Attachments ({note.attachments.length}):
+                          </div>
+                          <div className="space-y-1.5">
+                            {note.attachments.map((a: any) => {
+                              const fileName = a.file_path?.split('/').pop() || 'attachment';
+                              const isImage = a.file_type?.startsWith('image/');
+                              const isPdf = a.file_type === 'application/pdf';
+                              return (
+                                <a 
+                                  key={a.id} 
+                                  href={a.full_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="flex items-center gap-2 text-sm text-primary hover:underline p-2 rounded border hover:bg-muted/50 transition-colors"
+                                >
+                                  {isImage ? (
+                                    <Image className="h-4 w-4 flex-shrink-0" />
+                                  ) : isPdf ? (
+                                    <FileText className="h-4 w-4 flex-shrink-0" />
+                                  ) : (
+                                    <File className="h-4 w-4 flex-shrink-0" />
+                                  )}
+                                  <span className="truncate">{fileName}</span>
+                                  <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
+                                    {(a.file_size / 1024).toFixed(1)} KB
+                                  </span>
+                                </a>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -473,9 +531,13 @@ export default function TicketDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
+                  {user?.loginType === 'partner' && (
+                    <>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                    </>
+                  )}
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>

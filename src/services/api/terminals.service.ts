@@ -291,6 +291,14 @@ class TerminalsService {
   async addVirtualAccount(terminalId: number | string, data: { bank_id: number; account_number: string; account_name: string }): Promise<any> {
     return apiService.post(`/terminals/${terminalId}/add-virtual-account`, data);
   }
+
+  /**
+   * Remove virtual account from terminal
+   * DELETE /api/partner-hub/terminals/{id}/remove-virtual-account
+   */
+  async removeVirtualAccount(terminalId: number | string): Promise<any> {
+    return apiService.delete(`/terminals/${terminalId}/remove-virtual-account`);
+  }
 }
 
 export const terminalsService = new TerminalsService();
