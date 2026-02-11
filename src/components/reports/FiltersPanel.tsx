@@ -13,10 +13,17 @@ type Props = {
 };
 
 export default function FiltersPanel({ startDate, endDate, onRangeChange, onRun, children, showRun = true }: Props) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onRun) {
+      onRun();
+    }
+  };
+
   return (
     <Card className="mb-6 border-muted-foreground/10 shadow-none">
       <CardContent className="p-4">
-        <form className="flex flex-col gap-4">
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {/* Row 1: date range */}
           <div>
             <DateRangePicker startDate={startDate} endDate={endDate} onChange={onRangeChange} />
@@ -32,7 +39,7 @@ export default function FiltersPanel({ startDate, endDate, onRangeChange, onRun,
 
             {showRun && (
               <div className="flex-shrink-0">
-                <Button onClick={onRun} className="w-full md:w-auto">
+                <Button type="submit" className="w-full md:w-auto">
                   Run Report
                 </Button>
               </div>

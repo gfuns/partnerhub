@@ -12,23 +12,29 @@ export default function TransactionsDetail() {
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  const fetchReport = async () => {
+    setLoading(true);
+    const params: any = { per_page: 25 };
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    try {
+      const resp = await reportsService.getTransactionsDetail(params);
+      // API: { success, data: { rows: [], meta, ... } }
+      const d = resp?.data ?? {};
+      setRows(Array.isArray(d.rows) ? d.rows : []);
+    } catch (err) {
+      console.warn('Failed to load transactions', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load on mount
   useEffect(() => {
-    const fetch = async () => {
-      const params: any = { per_page: 25 };
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-      try {
-        const resp = await reportsService.getTransactionsDetail(params);
-        // API: { success, data: { rows: [], meta, ... } }
-        const d = resp?.data ?? {};
-        setRows(Array.isArray(d.rows) ? d.rows : []);
-      } catch (err) {
-        console.warn('Failed to load transactions', err);
-      }
-    };
-    fetch();
-  }, [startDate, endDate]);
+    fetchReport();
+  }, []);
 
   // recent exports for this report
   const [recentExports, setRecentExports] = useState<any[]>([]);
@@ -62,12 +68,17 @@ export default function TransactionsDetail() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel startDate={startDate} endDate={endDate} onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} />
+      <FiltersPanel 
+        startDate={startDate} 
+        endDate={endDate} 
+        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} 
+        onRun={fetchReport}
+      />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="transactions_detail" params={{ start_date: startDate, end_date: endDate }} />
       </div>
 
-      <DataTable columns={columns} data={rows} emptyMessage="No transactions found" />
+      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No transactions found"} />
 
       {recentExports.length > 0 && (
         <div className="mt-6">

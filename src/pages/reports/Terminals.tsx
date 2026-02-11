@@ -10,19 +10,25 @@ import { useNavigate } from 'react-router-dom';
 export default function TerminalsReport() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  const fetchReport = async () => {
+    setLoading(true);
+    try {
+      const resp = await reportsService.getTerminalsReport();
+      // API: { success, data: { rows: [], meta, ... } }
+      const d = resp?.data ?? {};
+      setRows(Array.isArray(d.rows) ? d.rows : []);
+    } catch (err) {
+      console.warn('Failed to load terminals report', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load on mount
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const resp = await reportsService.getTerminalsReport();
-        // API: { success, data: { rows: [], meta, ... } }
-        const d = resp?.data ?? {};
-        setRows(Array.isArray(d.rows) ? d.rows : []);
-      } catch (err) {
-        console.warn('Failed to load terminals report', err);
-      }
-    };
-    fetch();
+    fetchReport();
   }, []);
 
   const columns = [
@@ -39,11 +45,11 @@ export default function TerminalsReport() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel onRangeChange={() => {}} />
+      <FiltersPanel onRangeChange={() => {}} onRun={fetchReport} />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="terminals" params={{}} />
       </div>
-      <DataTable columns={columns} data={rows} emptyMessage="No terminals found" />
+      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No terminals found"} />
     </div>
   );
 }

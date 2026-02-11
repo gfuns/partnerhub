@@ -12,20 +12,26 @@ export default function CommissionsReport() {
   const [rows, setRows] = useState<any[]>([]);
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
 
+  const fetchReport = async () => {
+    setLoading(true);
+    try {
+      const resp = await reportsService.getCommissionsReport({ start_date: startDate, end_date: endDate } as any);
+      // API: { success, data: { rows: [], meta, ... } }
+      const d = resp?.data ?? {};
+      setRows(Array.isArray(d.rows) ? d.rows : []);
+    } catch (err) {
+      console.warn('Failed to load commissions', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load on mount
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const resp = await reportsService.getCommissionsReport({ start_date: startDate, end_date: endDate } as any);
-        // API: { success, data: { rows: [], meta, ... } }
-        const d = resp?.data ?? {};
-        setRows(Array.isArray(d.rows) ? d.rows : []);
-      } catch (err) {
-        console.warn('Failed to load commissions', err);
-      }
-    };
-    fetch();
-  }, [startDate, endDate]);
+    fetchReport();
+  }, []);
 
   const columns = [
     { key: 'service_type', header: 'Service', render: (r: any) => r.service_type?.name || r.service_type },
@@ -41,11 +47,16 @@ export default function CommissionsReport() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel startDate={startDate} endDate={endDate} onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} />
+      <FiltersPanel 
+        startDate={startDate} 
+        endDate={endDate} 
+        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} 
+        onRun={fetchReport}
+      />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="commissions" params={{ start_date: startDate, end_date: endDate }} />
       </div>
-      <DataTable columns={columns} data={rows} emptyMessage="No commission data found" />
+      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No commission data found"} />
     </div>
   );
 }

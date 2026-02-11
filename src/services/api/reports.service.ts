@@ -1,5 +1,17 @@
 import apiService from '../ApiService';
 
+/**
+ * Reports Service
+ * 
+ * Handles all report endpoints for both Partner Hub and Agent Hub.
+ * The ApiService automatically routes requests to the correct endpoint:
+ * - Partner users: /api/partner-hub/reports/*
+ * - Agent users: /api/agent-hub/reports/*
+ * 
+ * When agents access reports, the backend automatically filters results
+ * to show only data for that specific agent. No additional filtering needed.
+ */
+
 // Common query params for reports
 export interface ReportsQuery {
   start_date?: string;

@@ -18,41 +18,34 @@ export default function TransactionsSummary() {
   const [serviceType, setServiceType] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [agentId, setAgentId] = useState<string | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
 
   // mock options
   const serviceTypes = [{ id: 'airtime', name: 'Airtime' }, { id: 'data', name: 'Data' }, { id: 'bill', name: 'Bill' }];
   const agents = [{ id: '1', name: 'Agent A' }, { id: '2', name: 'Agent B' }];
 
-  useEffect(() => {
-    const fetch = async () => {
-      const params: any = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-      try {
-        const resp = await reportsService.getTransactionsSummary(params);
-        const rawData = resp as any;
-        const data = rawData?.data?.data ?? rawData?.data ?? rawData;
-        setSummary(data);
-      } catch (err) {
-        console.warn('Failed to load summary', err);
-      }
-    };
-    fetch();
-  }, [startDate, endDate]);
-
-  // mock initial data if API empty
-  useEffect(() => {
-    if (!summary) {
-      const mock = {
-        total_count: 1234,
-        total_volume: 9876543.21,
-        success_rate: 95.2,
-        fees_total: 12345.67,
-        by_day: Array.from({ length: 14 }).map((_, i) => ({ date: new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0,10), count: Math.floor(Math.random()*200), volume: Math.floor(Math.random()*1000000), fees: Math.floor(Math.random()*5000) })),
-      };
-      setSummary(mock);
+  const fetchReport = async () => {
+    setLoading(true);
+    const params: any = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    try {
+      const resp = await reportsService.getTransactionsSummary(params);
+      const rawData = resp as any;
+      const data = rawData?.data?.data ?? rawData?.data ?? rawData;
+      setSummary(data);
+    } catch (err) {
+      console.warn('Failed to load summary', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Initial load on mount
+  useEffect(() => {
+    fetchReport();
   }, []);
+
 
   // recent exports for this report
   const [recentExports, setRecentExports] = useState<any[]>([]);
@@ -77,8 +70,13 @@ export default function TransactionsSummary() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel startDate={startDate} endDate={endDate} onRun={() => {}} onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}>
-        <div className="w-full mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      <FiltersPanel 
+        startDate={startDate} 
+        endDate={endDate} 
+        onRun={fetchReport} 
+        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}
+      >
+        {/* <div className="w-full mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <div className="min-w-0">
             <Select value={serviceType || 'all'} onValueChange={(v) => setServiceType(v || undefined)}>
               <SelectTrigger className="w-full">
@@ -116,10 +114,10 @@ export default function TransactionsSummary() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </div> */}
       </FiltersPanel>
       <div className="flex justify-end mb-6">
-        <ExportButtons reportKey="transactions_summary" params={{ start_date: startDate, end_date: endDate, service_type_id: serviceType, status, agent_id: agentId }} />
+        {/* <ExportButtons reportKey="transactions_summary" params={{ start_date: startDate, end_date: endDate, service_type_id: serviceType, status, agent_id: agentId }} /> */}
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mb-6">

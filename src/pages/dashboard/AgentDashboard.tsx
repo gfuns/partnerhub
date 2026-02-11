@@ -157,6 +157,18 @@ export default function AgentDashboard() {
           }}
           trend={dashboardData?.stats?.failed_transactions?.change && dashboardData.stats.failed_transactions.change < 0 ? 'down' : 'up'}
         />
+        <StatCard
+          title="Card Transactions"
+          value={dashboardData?.stats?.card_transactions?.formatted_volume || '₦0.00'}
+          icon={CreditCard}
+          subtitle={`${dashboardData?.stats?.card_transactions?.count || 0} transactions`}
+        />
+        <StatCard
+          title="Transfer Transactions"
+          value={dashboardData?.stats?.transfer_transactions?.formatted_volume || '₦0.00'}
+          icon={TrendingUp}
+          subtitle={`${dashboardData?.stats?.transfer_transactions?.count || 0} transactions`}
+        />
       </div>
 
       {/* Charts Row */}

@@ -12,20 +12,26 @@ export default function WalletReport() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
+  const fetchReport = async () => {
+    setLoading(true);
+    try {
+      const resp = await reportsService.getWalletReport();
+      // API: { success, data: { rows: [], meta, ...summaryFields } }
+      const d = resp?.data ?? {};
+      setSummary(d);
+      setRows(Array.isArray(d.rows) ? d.rows : []);
+    } catch (err) {
+      console.warn('Failed to load wallet', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load on mount
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const resp = await reportsService.getWalletReport();
-        // API: { success, data: { rows: [], meta, ...summaryFields } }
-        const d = resp?.data ?? {};
-        setSummary(d);
-        setRows(Array.isArray(d.rows) ? d.rows : []);
-      } catch (err) {
-        console.warn('Failed to load wallet', err);
-      }
-    };
-    fetch();
+    fetchReport();
   }, []);
 
   const columns = [
@@ -42,7 +48,7 @@ export default function WalletReport() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel onRangeChange={() => {}} />
+      <FiltersPanel onRangeChange={() => {}} onRun={fetchReport} />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="wallet" params={{}} />
       </div>
@@ -51,7 +57,7 @@ export default function WalletReport() {
         <StatCard title="Available" value={summary?.available_balance ?? '₦0.00'} />
         <StatCard title="Pending" value={summary?.pending_balance ?? '₦0.00'} />
       </div>
-      <DataTable columns={columns} data={rows} emptyMessage="No wallet transactions found" />
+      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No wallet transactions found"} />
     </div>
   );
 }

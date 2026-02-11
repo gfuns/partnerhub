@@ -12,20 +12,26 @@ export default function SettlementsReport() {
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  const fetchReport = async () => {
+    setLoading(true);
+    try {
+      const resp = await reportsService.getSettlements({ start_date: startDate, end_date: endDate });
+      // API: { success, data: { rows: [], meta, ... } }
+      const d = resp?.data ?? {};
+      setRows(Array.isArray(d.rows) ? d.rows : []);
+    } catch (err) {
+      console.warn('Failed to load settlements', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load on mount
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const resp = await reportsService.getSettlements({ start_date: startDate, end_date: endDate });
-        // API: { success, data: { rows: [], meta, ... } }
-        const d = resp?.data ?? {};
-        setRows(Array.isArray(d.rows) ? d.rows : []);
-      } catch (err) {
-        console.warn('Failed to load settlements', err);
-      }
-    };
-    fetch();
-  }, [startDate, endDate]);
+    fetchReport();
+  }, []);
 
   const columns = [
     { key: 'settlement_id', header: 'Settlement ID', render: (r: any) => r.settlement_id },
@@ -41,11 +47,16 @@ export default function SettlementsReport() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel startDate={startDate} endDate={endDate} onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} />
+      <FiltersPanel 
+        startDate={startDate} 
+        endDate={endDate} 
+        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} 
+        onRun={fetchReport}
+      />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="settlements" params={{ start_date: startDate, end_date: endDate }} />
       </div>
-      <DataTable columns={columns} data={rows} emptyMessage="No settlements found" />
+      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No settlements found"} />
     </div>
   );
 }

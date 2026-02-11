@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Activity, AlertTriangle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
@@ -7,53 +7,89 @@ import { DataTable } from '@/components/DataTable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import terminalsService from '@/services/api/terminals.service';
 
-const mockTerminalStatus = [
-  { id: '1', terminalId: 'TRM-001', agent: 'John Doe', status: 'online', lastPing: '2 sec ago', uptime: '99.9%' },
-  { id: '2', terminalId: 'TRM-002', agent: 'John Doe', status: 'online', lastPing: '5 sec ago', uptime: '98.5%' },
-  { id: '3', terminalId: 'TRM-003', agent: 'Jane Smith', status: 'offline', lastPing: '2 hours ago', uptime: '95.2%' },
-  { id: '4', terminalId: 'TRM-004', agent: 'Mike Johnson', status: 'online', lastPing: '1 sec ago', uptime: '99.8%' },
-  { id: '5', terminalId: 'TRM-005', agent: 'Sarah Brown', status: 'warning', lastPing: '45 sec ago', uptime: '97.1%' },
-];
-
-const mockAlerts = [
-  { id: '1', type: 'error', message: 'Terminal TRM-003 is offline', terminal: 'TRM-003', time: '2 hours ago' },
-  { id: '2', type: 'warning', message: 'High failure rate detected on TRM-015', terminal: 'TRM-015', time: '30 min ago' },
-  { id: '3', type: 'warning', message: 'Terminal TRM-005 slow response time', terminal: 'TRM-005', time: '15 min ago' },
-  { id: '4', type: 'success', message: 'Terminal TRM-042 back online', terminal: 'TRM-042', time: '5 min ago' },
-];
+// State will be populated from API: GET /terminals/monitoring
 
 const terminalColumns = [
-  { 
-    key: 'terminalId', 
+  {
+    key: 'terminal_id',
     header: 'Terminal ID',
-    render: (item: typeof mockTerminalStatus[0]) => (
-      <span className="font-mono font-medium">{item.terminalId}</span>
+    render: (item: any) => (
+      <span className="font-mono font-medium">{item.terminal_id || item.terminalId || item.id}</span>
     ),
   },
-  { key: 'agent', header: 'Agent' },
+  { key: 'agent', header: 'Merchant', render: (item: any) => (
+    item.agent && typeof item.agent === 'object'
+      ? item.agent.business_name || String(item.agent.id)
+      : item.agent
+      ? `${item.agent}`
+      : '—'
+  ) },
   {
     key: 'status',
     header: 'Status',
-    render: (item: typeof mockTerminalStatus[0]) => (
-      <StatusBadge status={item.status as 'online' | 'offline' | 'warning'} size="sm" />
+    render: (item: any) => (
+      <StatusBadge status={(item.online_status || item.status) as 'online' | 'offline' | 'warning'} size="sm" />
     ),
   },
-  { key: 'lastPing', header: 'Last Ping' },
-  { key: 'uptime', header: 'Uptime' },
+  { key: 'last_ping', header: 'Last Ping', render: (item: any) => item.last_ping || item.lastPing || '—' },
+  { key: 'uptime', header: 'Uptime', render: (item: any) => {
+    const u = item.uptime ?? item.uptime_percent;
+    return typeof u === 'number' ? `${u}%` : (u || '—');
+  } },
 ];
 
 export default function MonitoringDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [terminals, setTerminals] = useState<any[]>([]);
+  const [stats, setStats] = useState<{ total: number; online: number; offline: number; warnings: number }>({
+    total: 0,
+    online: 0,
+    offline: 0,
+    warnings: 0,
+  });
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  const fetchMonitoring = async () => {
+    setLoading(true);
+    try {
+      const resp = await terminalsService.getMonitoring();
+      // API shape: { success: true, data: { total_terminals, online, offline, warnings, live_status: [...] } }
+      const body = resp?.data ?? resp;
+      const d = body?.data ?? body;
+      setTerminals(Array.isArray(d?.live_status) ? d.live_status : []);
+      setAlerts(Array.isArray(d?.alerts) ? d.alerts : []);
+      // use stats from API when available
+      if (typeof d?.online === 'number') setStats({
+        total: d.total_terminals ?? (Array.isArray(d.live_status) ? d.live_status.length : 0),
+        online: d.online,
+        offline: d.offline,
+        warnings: d.warnings,
+      });
+    } catch (err) {
+      console.warn('Failed to load monitoring data', err);
+      setTerminals([]);
+      setAlerts([]);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
+    fetchMonitoring();
   };
 
-  const onlineCount = mockTerminalStatus.filter(t => t.status === 'online').length;
-  const offlineCount = mockTerminalStatus.filter(t => t.status === 'offline').length;
-  const warningCount = mockTerminalStatus.filter(t => t.status === 'warning').length;
+  useEffect(() => {
+    fetchMonitoring();
+  }, []);
+
+  const onlineCount = typeof stats.online === 'number' ? stats.online : terminals.filter(t => (t.online_status || t.status) === 'online').length;
+  const offlineCount = typeof stats.offline === 'number' ? stats.offline : terminals.filter(t => (t.online_status || t.status) === 'offline').length;
+  const warningCount = typeof stats.warnings === 'number' ? stats.warnings : terminals.filter(t => (t.online_status || t.status) === 'warning').length;
 
   return (
     <div>
@@ -69,10 +105,10 @@ export default function MonitoringDashboard() {
       />
 
       {/* Status Overview */}
-      <div className="grid gap-4 md:grid-cols-4 mb-8">
+      <div className="grid gap-3 md:grid-cols-3 mb-8">
         <StatCard
           title="Total Terminals"
-          value={mockTerminalStatus.length}
+          value={stats.total ?? terminals.length}
           icon={Activity}
         />
         <StatCard
@@ -85,24 +121,24 @@ export default function MonitoringDashboard() {
           value={offlineCount}
           icon={XCircle}
         />
-        <StatCard
+        {/* <StatCard
           title="Warnings"
           value={warningCount}
           icon={AlertTriangle}
-        />
+        /> */}
       </div>
 
       <Tabs defaultValue="status" className="space-y-4">
         <TabsList>
           <TabsTrigger value="status">Terminal Status</TabsTrigger>
-          <TabsTrigger value="alerts">
+          {/* <TabsTrigger value="alerts">
             Alerts
             {mockAlerts.length > 0 && (
               <span className="ml-2 rounded-full bg-destructive px-2 py-0.5 text-xs text-destructive-foreground">
                 {mockAlerts.length}
               </span>
             )}
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="status">
@@ -113,14 +149,14 @@ export default function MonitoringDashboard() {
             <CardContent>
               <DataTable
                 columns={terminalColumns}
-                data={mockTerminalStatus}
-                emptyMessage="No terminals to monitor"
+                data={terminals}
+                emptyMessage={loading ? 'Loading...' : 'No terminals to monitor'}
               />
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="alerts">
+        {/* <TabsContent value="alerts">
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium">System Alerts</CardTitle>
@@ -152,7 +188,7 @@ export default function MonitoringDashboard() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

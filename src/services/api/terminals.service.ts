@@ -206,6 +206,15 @@ class TerminalsService {
   }
 
   /**
+   * Get monitoring data for terminals (live status + alerts)
+   * GET /api/partner-hub/terminals/monitoring
+   */
+  async getMonitoring(params?: Record<string, any>): Promise<any> {
+    const queryString = params ? apiService.buildQueryString(params) : '';
+    return apiService.get(`/terminals/monitoring${queryString}`);
+  }
+
+  /**
    * Get terminal details with stats
    * GET /api/partner-hub/terminals/{id}
    */

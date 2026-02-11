@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const reportTypes = [
   {
@@ -20,7 +21,7 @@ const reportTypes = [
     description: 'High-level transaction metrics and trends',
     icon: CreditCard,
     route: '/reports/transactions/summary',
-    lastGenerated: '2024-01-19 23:59',
+    // lastGenerated: '2024-01-19 23:59',
   },
   {
     id: 'transactions_detail',
@@ -28,7 +29,7 @@ const reportTypes = [
     description: 'Detailed transaction rows for auditing and reconciliation',
     icon: FileText,
     route: '/reports/transactions/detail',
-    lastGenerated: '2024-01-19 23:59',
+    // lastGenerated: '2024-01-19 23:59',
   },
   {
     id: 'settlements',
@@ -36,7 +37,7 @@ const reportTypes = [
     description: 'Overview of settlements requested and completed',
     icon: Wallet,
     route: '/reports/settlements',
-    lastGenerated: '2024-01-19 18:00',
+    // lastGenerated: '2024-01-19 18:00',
   },
   {
     id: 'commissions',
@@ -44,7 +45,7 @@ const reportTypes = [
     description: 'Fees breakdown and overrides',
     icon: Coins,
     route: '/reports/commissions',
-    lastGenerated: '2024-01-18 12:00',
+    // lastGenerated: '2024-01-18 12:00',
   },
   {
     id: 'terminals',
@@ -52,7 +53,7 @@ const reportTypes = [
     description: 'Per-terminal performance and assignment history',
     icon: Server,
     route: '/reports/terminals',
-    lastGenerated: '2024-01-17 23:59',
+    // lastGenerated: '2024-01-17 23:59',
   },
   // {
   //   id: 'agents',
@@ -82,10 +83,21 @@ const reportTypes = [
 
 export default function ReportsList() {
   const { toast } = useToast();
-  const [selected, setSelected] = useState(reportTypes[0].id);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Filter reports based on user type - hide commissions report for non-partner users
+  const availableReports = reportTypes.filter(report => {
+    if (report.id === 'commissions') {
+      return user?.loginType === 'partner';
+    }
+    return true;
+  });
+  
+  const [selected, setSelected] = useState(availableReports[0]?.id || reportTypes[0].id);
 
-  const active = reportTypes.find((r) => r.id === selected) || reportTypes[0];
+
+  const active = availableReports.find((r) => r.id === selected) || availableReports[0];
 
   return (
     <div>
@@ -93,7 +105,7 @@ export default function ReportsList() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="col-span-1 space-y-2">
-          {reportTypes.map((r) => (
+          {availableReports.map((r) => (
             <button
               key={r.id}
               onClick={() => setSelected(r.id)}
@@ -120,12 +132,12 @@ export default function ReportsList() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between mb-4">
-                <div className="text-sm text-muted-foreground">Last generated: {active.lastGenerated}</div>
+                {/* <div className="text-sm text-muted-foreground">Last generated: {active.lastGenerated}</div> */}
                 <div className="flex items-center gap-2">
                   <Button onClick={() => navigate(active.route)}>Open Report</Button>
-                  <Button variant="outline" onClick={() => { toast({ title: 'Export queued', description: `${active.title} export queued.` }); navigate('/reports/exports'); }}>
+                  {/* <Button variant="outline" onClick={() => { toast({ title: 'Export queued', description: `${active.title} export queued.` }); navigate('/reports/exports'); }}>
                     Queue Export
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
 
