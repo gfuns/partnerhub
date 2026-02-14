@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type StatusType = 'online' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review' | 'pending_correction' | 'paid';
+type StatusType = 'online' | 'ready' | 'offline' | 'pending' | 'pending_onboarding' | 'in_review' | 'success' | 'error' | 'failed' | 'warning' | 'active' | 'disabled' | 'revoked' | 'suspended' | 'approved' | 'rejected' | 'pending_review' | 'pending_correction' | 'paid';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -16,6 +16,11 @@ const statusStyles: Record<StatusType, { bg: string; text: string; dot: string }
     dot: 'bg-success',
   },
   active: {
+    bg: 'bg-success/10',
+    text: 'text-success',
+    dot: 'bg-success',
+  },
+  ready: {
     bg: 'bg-success/10',
     text: 'text-success',
     dot: 'bg-success',
@@ -120,7 +125,8 @@ const statusLabels: Record<StatusType, string> = {
   rejected: 'Rejected',
   pending_review: 'Pending Review',
   pending_correction: 'Pending Correction',
-  paid: 'Paid'
+  paid: 'Paid',
+  ready: 'Ready',
 };
 
 export function StatusBadge({ status, label, showDot = true, size = 'md' }: StatusBadgeProps) {

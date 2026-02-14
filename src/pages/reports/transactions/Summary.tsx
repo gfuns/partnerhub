@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { ChartContainer } from '@/components/ui/chart';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import * as Recharts from 'recharts';
 import reportsService from '@/services/api/reports.service';
 import FiltersPanel from '@/components/reports/FiltersPanel';
@@ -19,6 +20,7 @@ export default function TransactionsSummary() {
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [agentId, setAgentId] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line');
 
   // mock options
   const serviceTypes = [{ id: 'airtime', name: 'Airtime' }, { id: 'data', name: 'Data' }, { id: 'bill', name: 'Bill' }];
@@ -128,15 +130,48 @@ export default function TransactionsSummary() {
       </div>
 
       <div className="mb-6">
-        <ChartContainer config={{ volume: { label: 'Volume' } }}>
-          <Recharts.LineChart data={summary?.by_day || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <Recharts.CartesianGrid strokeDasharray="3 3" />
-            <Recharts.XAxis dataKey="date" />
-            <Recharts.YAxis />
-            <Recharts.Tooltip />
-            <Recharts.Line type="monotone" dataKey="volume" stroke="#8884d8" dot={false} />
-          </Recharts.LineChart>
-        </ChartContainer>
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <CardTitle>Volume by Day</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant={chartType === 'line' ? 'outline' : 'ghost'} onClick={() => setChartType('line')}>Line</Button>
+              <Button size="sm" variant={chartType === 'bar' ? 'outline' : 'ghost'} onClick={() => setChartType('bar')}>Bar</Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{ volume: { label: 'Volume' } }}>
+              <div style={{ height: 320 }} className="w-full">
+                <Recharts.ResponsiveContainer width="100%" height="100%">
+                  {chartType === 'line' ? (
+                    <Recharts.LineChart data={summary?.by_day || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <Recharts.CartesianGrid strokeDasharray="3 3" strokeOpacity={0.6} />
+                      <Recharts.XAxis dataKey="day" tickFormatter={(d) => (d ? d.replace(/^\d{4}-/, '') : '')} />
+                      <Recharts.YAxis domain={[0, 'dataMax']} tickFormatter={(v) => `₦${Number(v).toLocaleString()}`} />
+                      <Recharts.Tooltip formatter={(value: any) => `₦${Number(value).toLocaleString()}`} labelFormatter={(label) => label} />
+                      <Recharts.Line
+                        type="monotone"
+                        dataKey="volume"
+                        stroke="#4f46e5"
+                        strokeWidth={3}
+                        dot={{ r: Math.max(6, (summary?.by_day?.length === 1 ? 8 : 4)) }}
+                        activeDot={{ r: 8 }}
+                        isAnimationActive={false}
+                      />
+                    </Recharts.LineChart>
+                  ) : (
+                    <Recharts.BarChart data={summary?.by_day || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <Recharts.CartesianGrid strokeDasharray="3 3" strokeOpacity={0.6} />
+                      <Recharts.XAxis dataKey="day" tickFormatter={(d) => (d ? d.replace(/^\d{4}-/, '') : '')} />
+                      <Recharts.YAxis domain={[0, 'dataMax']} tickFormatter={(v) => `₦${Number(v).toLocaleString()}`} />
+                      <Recharts.Tooltip formatter={(value: any) => `₦${Number(value).toLocaleString()}`} labelFormatter={(label) => label} />
+                      <Recharts.Bar dataKey="volume" fill="#4f46e5" />
+                    </Recharts.BarChart>
+                  )}
+                </Recharts.ResponsiveContainer>
+              </div>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {recentExports.length > 0 && (

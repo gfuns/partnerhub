@@ -6,6 +6,8 @@ import reportsService from '@/services/api/reports.service';
 import ExportButtons from '@/components/reports/ExportButtons';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { TablePagination } from '@/components/TablePagination';
+import { StatusBadge } from '@/components/StatusBadge';
 
 export default function TransactionsDetail() {
   const navigate = useNavigate();
@@ -13,28 +15,45 @@ export default function TransactionsDetail() {
   const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(25);
+  const [totalItems, setTotalItems] = useState<number>(0);
 
-  const fetchReport = async () => {
+  const fetchReport = async (p: number = page, pp: number = perPage) => {
     setLoading(true);
-    const params: any = { per_page: 25 };
+    const params: any = { per_page: pp, page: p };
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
-    try {
-      const resp = await reportsService.getTransactionsDetail(params);
-      // API: { success, data: { rows: [], meta, ... } }
-      const d = resp?.data ?? {};
-      setRows(Array.isArray(d.rows) ? d.rows : []);
-    } catch (err) {
-      console.warn('Failed to load transactions', err);
-    } finally {
-      setLoading(false);
+    
+    if (startDate && endDate) {
+      try {
+        const resp = await reportsService.getTransactionsDetail(params);
+        const raw = resp as any;
+        const payload = raw?.data?.data ?? raw?.data ?? raw;
+        const d = payload?.data ?? payload;
+        const rowsArr = Array.isArray(d?.rows) ? d.rows : Array.isArray(payload?.rows) ? payload.rows : [];
+        setRows(rowsArr);
+        const meta = d?.meta ?? payload?.meta ?? {};
+        const total = meta?.total ?? meta?.total_items ?? 0;
+        const currentPage = meta?.page ?? p;
+        const per_page = meta?.per_page ?? meta?.perPage ?? pp;
+        setTotalItems(Number(total));
+        setPage(Number(currentPage));
+        setPerPage(Number(per_page));
+      } catch (err) {
+        console.warn('Failed to load transactions', err);
+        setRows([]);
+        setTotalItems(0);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   // Initial load on mount
   useEffect(() => {
-    fetchReport();
-  }, []);
+    fetchReport(1, perPage);
+  }, [startDate, endDate]);
 
   // recent exports for this report
   const [recentExports, setRecentExports] = useState<any[]>([]);
@@ -52,13 +71,35 @@ export default function TransactionsDetail() {
   }, []);
 
   const columns = [
-    { key: 'reference', header: 'Reference', render: (r: any) => r.reference },
-    { key: 'amount', header: 'Amount', render: (r: any) => `₦${Number(r.amount).toLocaleString()}` },
-    { key: 'status', header: 'Status', render: (r: any) => r.status },
-    { key: 'service_type', header: 'Service', render: (r: any) => r.service_type },
-    { key: 'terminal', header: 'Terminal', render: (r: any) => r.terminal_name || r.terminal_id },
-    { key: 'agent', header: 'Agent', render: (r: any) => r.agent_name || r.agent_id },
-    { key: 'created_at', header: 'Created', render: (r: any) => r.created_at },
+    { key: 'reference', header: 'Reference', render: (r: any) => r.trx || r.ref || r.transactionRef || '—' },
+    { key: 'amount', header: 'Amount', render: (r: any) => {
+      const a = r.total ?? r.amount ?? r.total_amount ?? 0;
+      const num = Number(a) || 0;
+      return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    } },
+    { key: 'status', header: 'Status', render: (r: any) => (
+      <StatusBadge status={(String(r.status || 'pending') as any)} />
+    ) },
+    { key: 'service', header: 'Service', render: (r: any) => r.service || r.title || '—' },
+    { key: 'terminal', header: 'Terminal', render: (r: any) => r.terminal?.terminal_id || (r.terminal?.id ? `#${r.terminal.id}` : r.pos_id) || '—' },
+    { key: 'merchant', header: 'Merchant', render: (r: any) => r.pos?.agent?.business_name || '—' },
+    { key: 'gateway', header: 'Source', render: (r: any) => {
+      if (r?.inflow) return String(r.inflow).toUpperCase();
+      if (r?.maskedpan) return 'CARD';
+      return '—';
+    } },
+    { key: 'description', header: 'Description', render: (r: any) => (
+      <div className="max-w-xs truncate">{r.description || r.narration || '—'}</div>
+    ) },
+    { key: 'created_at', header: 'Created', render: (r: any) => {
+      try {
+        return new Date(r.created_at).toLocaleString('en-NG', {
+          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+      } catch (e) {
+        return r.created_at || '—';
+      }
+    } },
   ];
 
   return (
@@ -72,13 +113,22 @@ export default function TransactionsDetail() {
         startDate={startDate} 
         endDate={endDate} 
         onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} 
-        onRun={fetchReport}
+        onRun={() => { setPage(1); fetchReport(1, perPage); }}
       />
       <div className="flex justify-end mb-6">
         <ExportButtons reportKey="transactions_detail" params={{ start_date: startDate, end_date: endDate }} />
       </div>
 
-      <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No transactions found"} />
+      <DataTable columns={columns} data={rows} loading={loading} emptyMessage={loading ? "Loading..." : "No transactions found"} />
+
+      <TablePagination
+        currentPage={page}
+        totalPages={Math.max(1, Math.ceil(totalItems / perPage))}
+        pageSize={perPage}
+        totalItems={totalItems}
+        onPageChange={(p) => { setPage(p); fetchReport(p, perPage); }}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); fetchReport(1, size); }}
+      />
 
       {recentExports.length > 0 && (
         <div className="mt-6">

@@ -669,6 +669,11 @@ export default function TerminalDetails() {
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
+              title="Balance"
+              value={formatCurrency(terminal?.balance ? parseFloat(terminal?.balance) : 0)}
+              icon={TrendingUp}
+            />
+            <StatCard
               title="Today's Volume"
               value={formatCurrency(stats?.today.volume)}
               icon={TrendingUp}

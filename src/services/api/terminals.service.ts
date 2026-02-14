@@ -23,6 +23,7 @@ export interface Terminal {
   last_seen_at?: string;
   created_at: string;
   updated_at: string;
+  balance?: string;
   today_transaction_volume?: number;
   today_transaction_count?: number;
   pos_type?: string;

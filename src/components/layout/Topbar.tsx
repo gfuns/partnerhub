@@ -63,14 +63,14 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative" style={{ color: branding.header_text_color }}>
+        {/* <Button variant="ghost" size="icon" className="relative" style={{ color: branding.header_text_color }}>
           <Bell className="h-5 w-5" />
           <span 
             className="absolute right-2 top-2 h-2 w-2 rounded-full" 
             style={{ backgroundColor: branding.danger_color }}
           />
           <span className="sr-only">Notifications</span>
-        </Button>
+        </Button> */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

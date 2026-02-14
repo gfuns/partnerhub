@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
@@ -9,7 +9,7 @@ type Props = {
 };
 
 export default function DateRangePicker({ startDate, endDate, onChange }: Props) {
-  const [preset, setPreset] = React.useState('custom');
+  const [preset, setPreset] = React.useState('today');
 
   const applyPreset = (p: string) => {
     setPreset(p);
@@ -43,6 +43,11 @@ export default function DateRangePicker({ startDate, endDate, onChange }: Props)
       onChange(s, e);
     }
   };
+
+  useEffect(() => {
+    // on mount, apply default preset
+    applyPreset(preset);
+  }, []);
 
   return (
     <div className="flex items-center gap-3">
