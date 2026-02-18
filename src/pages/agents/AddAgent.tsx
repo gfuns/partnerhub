@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { agentsService, CreateAgentRequest } from '@/services/api';
 import { toast as sonnerToast } from 'sonner';
 
-interface FormData extends CreateAgentRequest {}
+interface FormData extends CreateAgentRequest { }
 
 interface FormErrors {
   business_name?: string;
@@ -93,7 +93,7 @@ export default function AddAgent() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    
+
     try {
       const response = await agentsService.createAgent(formData);
       sonnerToast.success(response.message);
@@ -121,12 +121,12 @@ export default function AddAgent() {
   return (
     <div>
       <PageHeader
-        title="Add Agent"
-        description="Create a new terminal agent for your partner."
+        title="Add Merchant"
+        description="Create a new terminal merchant for your partner."
         actions={
           <Button variant="ghost" onClick={() => navigate('/agents')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Agents
+            Back to Merchants
           </Button>
         }
       />
@@ -135,7 +135,7 @@ export default function AddAgent() {
         <div className="max-w-2xl space-y-6">
           <Card>
             <CardContent className="pt-6">
-              <FormSection title="Business Information" description="Enter the agent's business details.">
+              <FormSection title="Business Information" description="Enter the merchant's business details.">
                 <FormField label="Business Name" required error={errors.business_name}>
                   <Input
                     value={formData.business_name}
@@ -187,11 +187,24 @@ export default function AddAgent() {
                   </FormField>
 
                   <FormField label="State" required error={errors.state}>
-                    <Input
+                    <Select
                       value={formData.state}
-                      onChange={(e) => updateField('state', e.target.value)}
-                      placeholder="Enter state"
-                    />
+                      onValueChange={(v) => updateField('state', v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
+                          'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT', 'Gombe', 'Imo',
+                          'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa',
+                          'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara'
+                        ].map((state) => (
+                          <SelectItem key={state} value={state}>{state}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormField>
                 </div>
 

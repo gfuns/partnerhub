@@ -77,6 +77,8 @@ import SupportList from "./pages/support/SupportList";
 import TicketDetail from "./pages/support/TicketDetail";
 
 import NotFound from "./pages/NotFound";
+// Public pages
+import OnboardMerchant from "./pages/public/OnboardMerchant";
 
 const queryClient = new QueryClient();
 
@@ -85,80 +87,81 @@ const App = () => (
     <BrandingProvider>
       <AuthProvider>
         <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/choose-account" element={<ChooseAccount />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/kyc-onboarding" element={<KycOnboarding />} />
-            <Route path="/kyc-pending" element={<KycPending />} />
-            <Route path="/partner-kyc-onboarding" element={<PartnerKycOnboarding />} />
-            <Route path="/partner-kyc-pending" element={<PartnerKycPending />} />
-            {/* Dashboard routes */}
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              
-              {/* Partner routes - Agents */}
-              <Route path="/agents" element={<AgentsList />} />
-              <Route path="/agents/new" element={<AddAgent />} />
-              <Route path="/kyc-review/agents" element={<KycReviewList />} />
-              <Route path="/kyc-review/agents/:id" element={<KycReview />} />
-              <Route path="/agents/:id" element={<AgentDetails />} />
-              <Route path="/agents/:id/edit" element={<EditAgent />} />
-              
-              {/* Partner routes - Terminals */}
-              <Route path="/terminals" element={<TerminalsList />} />
-              <Route path="/terminals/new" element={<IssuePOS />} />
-              <Route path="/terminals/:id" element={<TerminalDetails />} />
-              
-              {/* Partner routes - Transactions */}
-              <Route path="/transactions" element={<TransactionsList />} />
-              <Route path="/transactions/:id" element={<TransactionDetails />} />
-              
-              {/* Partner routes - Users */}
-              <Route path="/users" element={<UsersList />} />
-              <Route path="/users/new" element={<CreateUser />} />
-              <Route path="/users/:id" element={<UserDetails />} />
-              
-              {/* Partner routes - Other */}
-              <Route path="/reports" element={<ReportsList />} />
-              <Route path="/reports/transactions/summary" element={<TransactionsSummary />} />
-              <Route path="/reports/transactions/detail" element={<TransactionsDetail />} />
-              <Route path="/reports/exports" element={<ExportsList />} />
-              <Route path="/reports/settlements" element={<SettlementsReport />} />
-              <Route path="/reports/wallet" element={<WalletReport />} />
-              <Route path="/reports/terminals" element={<TerminalsReport />} />
-              <Route path="/reports/agents" element={<AgentsReport />} />
-              <Route path="/reports/commissions" element={<CommissionsReport />} />
-              <Route path="/monitoring" element={<MonitoringDashboard />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              
-              {/* Partner routes - Wallet, Commissions, Settlements */}
-              <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/commissions" element={<PartnerCommissionsPage />} />
-              <Route path="/settlements" element={<PartnerSettlementsPage />} />
-              
-              {/* Agent routes */}
-              <Route path="/my-terminals" element={<MyTerminals />} />
-              <Route path="/my-terminals/:id" element={<AgentTerminalDetails />} />
-              <Route path="/agent/transactions" element={<AgentTransactions />} />
-              <Route path="/agent/transactions/:id" element={<AgentTransactionDetails />} />
-              <Route path="/settlements" element={<Settlements />} />
-              <Route path="/settlements/:id" element={<SettlementDetails />} />
-              <Route path="/commissions" element={<Commissions />} />
-              <Route path="/commissions/:id" element={<CommissionDetails />} />
-              <Route path="/profile" element={<Profile />} />
-              {/* Support module */}
-              <Route path="/support" element={<SupportList />} />
-              <Route path="/support/:id" element={<TicketDetail />} />
-            </Route>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/choose-account" element={<ChooseAccount />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/kyc-onboarding" element={<KycOnboarding />} />
+              <Route path="/kyc-pending" element={<KycPending />} />
+              <Route path="/partner-kyc-onboarding" element={<PartnerKycOnboarding />} />
+              <Route path="/partner-kyc-pending" element={<PartnerKycPending />} />
+              {/* Dashboard routes */}
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+                {/* Partner routes - Agents */}
+                <Route path="/agents" element={<AgentsList />} />
+                <Route path="/agents/new" element={<AddAgent />} />
+                <Route path="/kyc-review/agents" element={<KycReviewList />} />
+                <Route path="/kyc-review/agents/:id" element={<KycReview />} />
+                <Route path="/agents/:id" element={<AgentDetails />} />
+                <Route path="/agents/:id/edit" element={<EditAgent />} />
+
+                {/* Partner routes - Terminals */}
+                <Route path="/terminals" element={<TerminalsList />} />
+                <Route path="/terminals/new" element={<IssuePOS />} />
+                <Route path="/terminals/:id" element={<TerminalDetails />} />
+
+                {/* Partner routes - Transactions */}
+                <Route path="/transactions" element={<TransactionsList />} />
+                <Route path="/transactions/:id" element={<TransactionDetails />} />
+
+                {/* Partner routes - Users */}
+                <Route path="/users" element={<UsersList />} />
+                <Route path="/users/new" element={<CreateUser />} />
+                <Route path="/users/:id" element={<UserDetails />} />
+
+                {/* Partner routes - Other */}
+                <Route path="/reports" element={<ReportsList />} />
+                <Route path="/reports/transactions/summary" element={<TransactionsSummary />} />
+                <Route path="/reports/transactions/detail" element={<TransactionsDetail />} />
+                <Route path="/reports/exports" element={<ExportsList />} />
+                <Route path="/reports/settlements" element={<SettlementsReport />} />
+                <Route path="/reports/wallet" element={<WalletReport />} />
+                <Route path="/reports/terminals" element={<TerminalsReport />} />
+                <Route path="/reports/agents" element={<AgentsReport />} />
+                <Route path="/reports/commissions" element={<CommissionsReport />} />
+                <Route path="/monitoring" element={<MonitoringDashboard />} />
+                <Route path="/settings" element={<SettingsPage />} />
+
+                {/* Partner routes - Wallet, Commissions, Settlements */}
+                <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/commissions" element={<PartnerCommissionsPage />} />
+                <Route path="/settlements" element={<PartnerSettlementsPage />} />
+
+                {/* Agent routes */}
+                <Route path="/my-terminals" element={<MyTerminals />} />
+                <Route path="/my-terminals/:id" element={<AgentTerminalDetails />} />
+                <Route path="/agent/transactions" element={<AgentTransactions />} />
+                <Route path="/agent/transactions/:id" element={<AgentTransactionDetails />} />
+                <Route path="/settlements" element={<Settlements />} />
+                <Route path="/settlements/:id" element={<SettlementDetails />} />
+                <Route path="/commissions" element={<Commissions />} />
+                <Route path="/commissions/:id" element={<CommissionDetails />} />
+                <Route path="/profile" element={<Profile />} />
+                {/* Support module */}
+                <Route path="/support" element={<SupportList />} />
+                <Route path="/support/:id" element={<TicketDetail />} />
+              </Route>
+
+              <Route path="/onboard-merchant" element={<OnboardMerchant />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </BrandingProvider>
