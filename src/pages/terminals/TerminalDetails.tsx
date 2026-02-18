@@ -47,7 +47,10 @@ export default function TerminalDetails() {
 
   // Virtual Account states
   const [canAssignVirtualAccount, setCanAssignVirtualAccount] = useState(false);
-  const [banks, setBanks] = useState<any[]>([]);
+  type Bank = { id: number; bank_name: string; bank_slug: string };
+  type VirtualAccount = { id: number; bank_name: string; account_number: string; account_name: string; status?: string };
+
+  const [banks, setBanks] = useState<Bank[]>([]);
   const [selectedBankId, setSelectedBankId] = useState<number | null>(null);
   const [selectedBankCode, setSelectedBankCode] = useState<string>('');
   const [accountNumber, setAccountNumber] = useState('');
@@ -66,7 +69,7 @@ export default function TerminalDetails() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [transactionSummary, setTransactionSummary] = useState<any>(null);
+  const [transactionSummary, setTransactionSummary] = useState<{ total_count: number; total_amount: number; total_fees?: number } | null>(null);
 
   const defaultTab = searchParams.get('tab') || 'overview';
   const pageSize = 15;
@@ -587,9 +590,9 @@ export default function TerminalDetails() {
     },
     {
       key: 'from',
-      header: 'Card/Source',
+      header: 'Source',
       render: (item: Transaction) => (
-        <span className="font-mono text-xs">{item.from || item.maskedpan || '-'}</span>
+        <span className="font-mono text-xs">{item?.inflow?.toUpperCase()} / {item.from || item.maskedpan || '-'}</span>
       ),
     },
     {
@@ -607,7 +610,7 @@ export default function TerminalDetails() {
       header: 'Status',
       render: (item: Transaction) => (
         <div className="flex flex-col gap-0.5">
-          <StatusBadge status={item.status === 'success' ? 'online' : 'offline'} size="sm" />
+          <StatusBadge status={item.status === 'success' ? 'success' : 'failed'} size="sm" />
           {item.status_desc && (
             <span className="text-xs text-muted-foreground">{item.status_desc}</span>
           )}
@@ -625,10 +628,10 @@ export default function TerminalDetails() {
     return <div className="p-6">Loading terminal details...</div>;
   }
 
-  const virtualAccounts = (terminal as any).virtual_accounts || [];
+  const virtualAccounts: VirtualAccount[] = (terminal as any).virtual_accounts || [];
 
   return (
-    <div>
+    <div className="space-y-6 p-6">
       <PageHeader
         title={terminal.terminal_id}
         description={terminal.agent ? `Assigned to ${terminal.agent.business_name}` : 'Unassigned'}
@@ -659,7 +662,8 @@ export default function TerminalDetails() {
         }
       />
 
-      <Tabs defaultValue={defaultTab} className="space-y-6" onValueChange={handleTabChange}>
+      <div className="bg-white dark:bg-slate-900 shadow-sm rounded-lg p-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
@@ -692,10 +696,32 @@ export default function TerminalDetails() {
             />
             <StatCard
               title="Last Seen"
-              value={formatLastSeen(terminal.last_seen_at)}
+              value={formatLastSeen(terminal.last_heartbeat_at)}
               icon={Clock}
+              subtitle={StatusBadge({ status: terminal?.is_online ? 'online' : 'offline', size: 'sm' })}
             />
+            <StatCard
+              title="Card Inflow (Today)"
+              value={formatCurrency(Number(stats?.inflow_totals?.card?.today_volume ?? 0))}
+              icon={TrendingUp}
+              subtitle={`${stats?.inflow_totals?.card?.today_count ?? 0} tx • Month: ${formatCurrency(Number(stats?.inflow_totals?.card?.month_volume ?? 0))}`}
+            />
+            <StatCard
+              title="Transfer Inflow (Today)"
+              value={formatCurrency(Number(stats?.inflow_totals?.transfer?.today_volume ?? 0))}
+              icon={Activity}
+              subtitle={`${stats?.inflow_totals?.transfer?.today_count ?? 0} tx • Month: ${formatCurrency(Number(stats?.inflow_totals?.transfer?.month_volume ?? 0))}`}
+            />
+            {/* <StatCard
+              title="Bill Inflow (Today)"
+              value={formatCurrency(Number(stats?.inflow_totals?.bill?.today_volume ?? 0))}
+              icon={Download}
+              subtitle={`${stats?.inflow_totals?.bill?.today_count ?? 0} tx • Month: ${formatCurrency(Number(stats?.inflow_totals?.bill?.month_volume ?? 0))}`}
+            /> */}
           </div>
+
+          {/* Inflow totals (today) */}
+          <div className="grid gap-4 md:grid-cols-3" />
 
           <div className="grid gap-6 md:grid-cols-2">
             <DetailCard title="Terminal Information">
@@ -705,7 +731,7 @@ export default function TerminalDetails() {
                 label="Status"
                 value={
                   <StatusBadge
-                    status={terminal.status === 'active' ? 'online' : terminal.status === 'revoked' ? 'revoked' : 'offline'}
+                    status={terminal.status === 'active' ? 'active' : terminal.status === 'revoked' ? 'revoked' : 'offline'}
                     size="sm"
                   />
                 }
@@ -807,8 +833,8 @@ export default function TerminalDetails() {
 
           {stats?.last_transaction && (
             <DetailCard title="Last Transaction">
-              <DetailRow label="Transaction ID" value={<span className="font-mono">{stats.last_transaction.ref}</span>} />
-              <DetailRow label="Amount" value={formatCurrency(stats.last_transaction.amount)} />
+              <DetailRow label="Transaction ID" value={<span className="font-mono">{stats.last_transaction.tran_id}</span>} />
+              <DetailRow label="Amount" value={formatCurrency(Number(stats.last_transaction.amount))} />
               <DetailRow
                 label="Status"
                 value={<StatusBadge status={stats.last_transaction.status === 'success' ? 'online' : 'offline'} size="sm" />}
@@ -819,7 +845,7 @@ export default function TerminalDetails() {
         </TabsContent>
 
         <TabsContent value="transactions" className="space-y-4">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 bg-muted p-4 rounded-lg">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:flex-wrap">
               <div className="flex flex-col gap-2">
                 <label className="text-xs text-muted-foreground">Start Date</label>
@@ -918,18 +944,20 @@ export default function TerminalDetails() {
                 <p className="text-sm text-muted-foreground">Total Amount</p>
                 <p className="text-lg font-semibold">{formatCurrency(transactionSummary.total_amount)}</p>
               </div>
-              <div>
+              {/* <div>
                 <p className="text-sm text-muted-foreground">Total Fees</p>
                 <p className="text-lg font-semibold">{formatCurrency(transactionSummary.total_fees)}</p>
-              </div>
+              </div> */}
             </div>
           )}
 
-          <DataTable
-            columns={transactionColumns}
-            data={transactions}
-            emptyMessage={loadingTransactions ? 'Loading transactions...' : 'No transactions found'}
-          />
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <DataTable
+                columns={transactionColumns}
+                data={transactions}
+                emptyMessage={loadingTransactions ? 'Loading transactions...' : 'No transactions found'}
+              />
+            </div>
 
           <TablePagination
             currentPage={currentPage}
@@ -1021,6 +1049,7 @@ export default function TerminalDetails() {
           </Dialog>
         </TabsContent>
       </Tabs>
+      </div>
 
       <ConfirmDialog
         open={toggleDialogOpen}

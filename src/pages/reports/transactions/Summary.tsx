@@ -28,25 +28,27 @@ export default function TransactionsSummary() {
 
   const fetchReport = async () => {
     setLoading(true);
-    const params: any = {};
-    if (startDate) params.start_date = startDate;
-    if (endDate) params.end_date = endDate;
-    try {
-      const resp = await reportsService.getTransactionsSummary(params);
-      const rawData = resp as any;
-      const data = rawData?.data?.data ?? rawData?.data ?? rawData;
-      setSummary(data);
-    } catch (err) {
-      console.warn('Failed to load summary', err);
-    } finally {
-      setLoading(false);
+    if (startDate && endDate) {
+      const params: any = {};
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+      try {
+        const resp = await reportsService.getTransactionsSummary(params);
+        const rawData = resp as any;
+        const data = rawData?.data?.data ?? rawData?.data ?? rawData;
+        setSummary(data);
+      } catch (err) {
+        console.warn('Failed to load summary', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   // Initial load on mount
   useEffect(() => {
     fetchReport();
-  }, []);
+  }, [startDate, endDate]);
 
 
   // recent exports for this report
@@ -72,10 +74,10 @@ export default function TransactionsSummary() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel 
-        startDate={startDate} 
-        endDate={endDate} 
-        onRun={fetchReport} 
+      <FiltersPanel
+        startDate={startDate}
+        endDate={endDate}
+        onRun={fetchReport}
         onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}
       >
         {/* <div className="w-full mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">

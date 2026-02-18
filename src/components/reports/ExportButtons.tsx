@@ -34,6 +34,8 @@ export default function ExportButtons({ reportKey, params = {} }: Props) {
     try {
       // For background exports call the same report endpoint with an `export: true` flag
       const payload = sanitize({ ...params, format, export: true });
+      console.log(payload);
+      
 
       // map known report keys to their fetching methods on reportsService
       const reportCallMap: Record<string, (p: any) => Promise<any>> = {

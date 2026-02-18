@@ -38,6 +38,7 @@ export default function CreateTicketModal({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const login_type = localStorage.getItem('login_type') || 'partner';
 
   useEffect(() => {
     if (open) {
@@ -185,28 +186,39 @@ export default function CreateTicketModal({ open, onOpenChange }: Props) {
     const v = validateStep();
     if (!v.valid) return toast({ variant: 'destructive', title: 'Validation', description: v.message });
 
+    const meta: any = {};
+    if (startDate) meta.date_from = startDate;
+    if (endDate) meta.date_to = endDate;
+    if (amount) meta.disputed_amount = Number(amount);
+
     const payload: any = {
       support_category_id: selectedCategory!.id,
       subject,
       description,
-      terminal_id: selectedTerminal ?? undefined,
-      agent_id: selectedAgent ?? undefined,
-      disputed_amount: amount ? Number(amount) : undefined,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
-      transactions: selectedTransactions.length ? selectedTransactions.map((t) => t.id) : undefined,
-      origin: 'partner_hub',
-      attachments: attachments.length ? attachments : undefined,
+      terminal_id: selectedTerminal ?? null,
+      agent_id: selectedAgent ?? null,
+      disputed_amount: amount ? Number(amount) : null,
+      // include both names: backend expects date_from/date_to, service multipart branch expects start_date/end_date
+      date_from: startDate || null,
+      date_to: endDate || null,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      transactions: selectedTransactions.length ? selectedTransactions.map((t) => t.id) : null,
+      origin: login_type === 'agent' ? 'agent_dashboard' : 'partner_hub',
+      attachments: attachments.length ? attachments : null,
+      meta: Object.keys(meta).length ? meta : null,
     };
+    console.log(payload);
+
 
     // try {
-      const resp = await supportService.createTicket(payload);
-      toast({ title: 'Ticket Created', description: 'Ticket created successfully' });
-      // Refresh ticket list
-      try { qc.invalidateQueries({ queryKey: ['support_tickets'] }); } catch (e) { qc.invalidateQueries(['support_tickets']); }
-      onOpenChange(false);
-      const newId = resp?.data?.ticket?.id;
-      if (newId) navigate(`/support/${newId}`);
+    const resp = await supportService.createTicket(payload);
+    toast({ title: 'Ticket Created', description: 'Ticket created successfully' });
+    // Refresh ticket list
+    try { qc.invalidateQueries({ queryKey: ['support_tickets'] }); } catch (e) { qc.invalidateQueries(['support_tickets']); }
+    onOpenChange(false);
+    const newId = resp?.data?.ticket?.id;
+    if (newId) navigate(`/support/${newId}`);
     // } catch (err: any) {
     //   toast({ variant: 'destructive', title: 'Create Failed', description: err?.message || 'Unable to create ticket' });
     // }

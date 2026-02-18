@@ -24,7 +24,7 @@ export default function TransactionsDetail() {
     const params: any = { per_page: pp, page: p };
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
-    
+
     if (startDate && endDate) {
       try {
         const resp = await reportsService.getTransactionsDetail(params);
@@ -72,34 +72,44 @@ export default function TransactionsDetail() {
 
   const columns = [
     { key: 'reference', header: 'Reference', render: (r: any) => r.trx || r.ref || r.transactionRef || '—' },
-    { key: 'amount', header: 'Amount', render: (r: any) => {
-      const a = r.total ?? r.amount ?? r.total_amount ?? 0;
-      const num = Number(a) || 0;
-      return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
-    } },
-    { key: 'status', header: 'Status', render: (r: any) => (
-      <StatusBadge status={(String(r.status || 'pending') as any)} />
-    ) },
+    {
+      key: 'amount', header: 'Amount', render: (r: any) => {
+        const a = r.total ?? r.amount ?? r.total_amount ?? 0;
+        const num = Number(a) || 0;
+        return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+      }
+    },
+    {
+      key: 'status', header: 'Status', render: (r: any) => (
+        <StatusBadge status={(String(r.status || 'pending') as any)} />
+      )
+    },
     { key: 'service', header: 'Service', render: (r: any) => r.service || r.title || '—' },
     { key: 'terminal', header: 'Terminal', render: (r: any) => r.terminal?.terminal_id || (r.terminal?.id ? `#${r.terminal.id}` : r.pos_id) || '—' },
     { key: 'merchant', header: 'Merchant', render: (r: any) => r.pos?.agent?.business_name || '—' },
-    { key: 'gateway', header: 'Source', render: (r: any) => {
-      if (r?.inflow) return String(r.inflow).toUpperCase();
-      if (r?.maskedpan) return 'CARD';
-      return '—';
-    } },
-    { key: 'description', header: 'Description', render: (r: any) => (
-      <div className="max-w-xs truncate">{r.description || r.narration || '—'}</div>
-    ) },
-    { key: 'created_at', header: 'Created', render: (r: any) => {
-      try {
-        return new Date(r.created_at).toLocaleString('en-NG', {
-          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-      } catch (e) {
-        return r.created_at || '—';
+    {
+      key: 'gateway', header: 'Source', render: (r: any) => {
+        if (r?.inflow) return String(r.inflow).toUpperCase();
+        if (r?.maskedpan) return 'CARD';
+        return '—';
       }
-    } },
+    },
+    {
+      key: 'description', header: 'Description', render: (r: any) => (
+        <div className="max-w-xs truncate">{r.description || r.narration || '—'}</div>
+      )
+    },
+    {
+      key: 'created_at', header: 'Created', render: (r: any) => {
+        try {
+          return new Date(r.created_at).toLocaleString('en-NG', {
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+          });
+        } catch (e) {
+          return r.created_at || '—';
+        }
+      }
+    },
   ];
 
   return (
@@ -109,14 +119,14 @@ export default function TransactionsDetail() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel 
-        startDate={startDate} 
-        endDate={endDate} 
-        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} 
+      <FiltersPanel
+        startDate={startDate}
+        endDate={endDate}
+        onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }}
         onRun={() => { setPage(1); fetchReport(1, perPage); }}
       />
       <div className="flex justify-end mb-6">
-        <ExportButtons reportKey="transactions_detail" params={{ start_date: startDate, end_date: endDate }} />
+        {rows.length > 0 && <ExportButtons reportKey="transactions_detail" params={{ start_date: startDate, end_date: endDate }} />}
       </div>
 
       <DataTable columns={columns} data={rows} loading={loading} emptyMessage={loading ? "Loading..." : "No transactions found"} />

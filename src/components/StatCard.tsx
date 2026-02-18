@@ -65,7 +65,7 @@ interface StatCardProps {
   };
   icon?: LucideIcon;
   trend?: 'up' | 'down' | 'neutral';
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
 }
 
 export function StatCard({ title, value, change, icon: Icon, trend, subtitle }: StatCardProps) {

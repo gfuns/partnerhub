@@ -23,6 +23,7 @@ export interface Transaction {
   agent_name: string;
   agent_code: string;
   created_at: string;
+  source?: string;
   time_ago: string;
 }
 

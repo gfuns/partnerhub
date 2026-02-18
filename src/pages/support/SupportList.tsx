@@ -47,16 +47,27 @@ export default function SupportList() {
     { key: 'subject', header: 'Subject' },
     { key: 'terminal', header: 'Terminal', render: (t: Ticket) => t.terminal?.terminal_id ?? t.terminal_id ?? '-' },
     { key: 'transactions', header: 'Txn Count', render: (t: Ticket) => (t as any).transaction_count ?? '-' },
-    { key: 'amount', header: 'Amount', render: (t: Ticket) => {
-      const amount = (t as any).disputed_amount;
-      return amount != null ? parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
-    }},
+    {
+      key: 'amount', header: 'Amount', render: (t: Ticket) => {
+        const amount = (t as any).disputed_amount;
+        return amount != null ? parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+      }
+    },
     { key: 'priority', header: 'Priority', render: (t: Ticket) => t.priority ?? '-' },
     { key: 'status', header: 'Status', render: (t: Ticket) => t.status ?? '-' },
     { key: 'assigned_to', header: 'Assigned To', render: (t: Ticket) => t.assigned_to ?? '-' },
-    { key: 'created_at', header: 'Created At' },
-    { key: 'updated_at', header: 'Last Updated' },
+    { key: 'created_at', header: 'Created At', render: (t: Ticket) => formatDate(t.created_at) },
+    { key: 'updated_at', header: 'Last Updated', render: (t: Ticket) => formatDate(t.updated_at) },
   ];
+
+  function formatDate(dateStr?: string) {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleString('en-NG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return dateStr;
+    }
+  }
 
   return (
     <div>

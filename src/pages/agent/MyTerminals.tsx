@@ -12,10 +12,11 @@ import { useState } from 'react';
 import { TablePagination } from '@/components/TablePagination';
 
 function mapStatus(apiStatus: Terminal['status']) {
-  if (!apiStatus) return 'offline';
-  if (apiStatus === 'active') return 'online';
+  if (!apiStatus) return 'inactive';
+  if (apiStatus === 'active') return 'active';
   if (apiStatus === 'suspended') return 'suspended';
-  return 'offline';
+  if (apiStatus === 'revoked') return 'revoked';
+  return 'inactive';
 }
 
 export default function MyTerminals() {
@@ -45,9 +46,9 @@ export default function MyTerminals() {
     {
       key: 'status',
       header: 'Status',
-      render: (item: Terminal) => <StatusBadge status={mapStatus(item.online_status) as any} size="sm" />,
+      render: (item: Terminal) => <StatusBadge status={mapStatus(item.status) as any} size="sm" />,
     },
-    { key: 'last_seen_at', header: 'Last Seen', render: (item: Terminal) => item.last_seen_at ? new Date(item.last_seen_at).toLocaleString() : '—' },
+    { key: 'last_seen_at', header: 'Last Seen', render: (item: Terminal) => item.last_heartbeat_at ? new Date(item.last_heartbeat_at).toLocaleString() : '—' },
     {
       key: 'today_transaction_volume',
       header: "Today's Volume",

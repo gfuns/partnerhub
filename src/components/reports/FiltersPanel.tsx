@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DateRangePicker from './DateRangePicker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,10 +13,27 @@ type Props = {
 };
 
 export default function FiltersPanel({ startDate, endDate, onRangeChange, onRun, children, showRun = true }: Props) {
+  const getIsoToday = () => new Date().toISOString().slice(0, 10);
+
+  const [localStartDate, setLocalStartDate] = useState<string | undefined>(() => startDate ?? getIsoToday());
+  const [localEndDate, setLocalEndDate] = useState<string | undefined>(() => endDate ?? getIsoToday());
+
+  useEffect(() => {
+    if (startDate !== undefined) {
+      setLocalStartDate(startDate);
+    }
+  }, [startDate]);
+
+  useEffect(() => {
+    if (endDate !== undefined) {
+      setLocalEndDate(endDate);
+    }
+  }, [endDate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onRun) {
-      onRun();
+    if (onRangeChange) {
+      onRangeChange(localStartDate, localEndDate);
     }
   };
 
@@ -26,7 +43,14 @@ export default function FiltersPanel({ startDate, endDate, onRangeChange, onRun,
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           {/* Row 1: date range */}
           <div>
-            <DateRangePicker startDate={startDate} endDate={endDate} onChange={onRangeChange} />
+            <DateRangePicker
+              startDate={localStartDate}
+              endDate={localEndDate}
+              onChange={(s?: string, e?: string) => {
+                setLocalStartDate(s);
+                setLocalEndDate(e);
+              }}
+            />
           </div>
 
           {/* Row 2: children (filters) and Run button */}

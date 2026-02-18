@@ -36,6 +36,7 @@ const columns = [
   },
   { key: 'terminal', header: 'Terminal', render: (item: any) => <span className="font-mono text-sm">{item.terminal_name ?? item.terminal_id ?? '—'}</span> },
   { key: 'type', header: 'Type', render: (item: any) => item.type_name ?? item.type },
+  { key: 'source', header: 'Source', render: (item: any) => item.source?.toUpperCase() ?? '—' },
   { key: 'amount', header: 'Amount', render: (item: any) => <span className="font-medium">{item.amount_formatted ?? item.amount}</span> },
   { key: 'status', header: 'Status', render: (item: any) => <StatusBadge status={(item.status || '').toString().includes('success') ? 'success' : ((item.status || '').toString().includes('pending') ? 'pending' : 'error')} size="sm" /> },
   { key: 'created_at', header: 'Date', render: (item: any) => item.created_at ? new Date(item.created_at).toLocaleString() : '—' },

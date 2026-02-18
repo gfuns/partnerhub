@@ -146,8 +146,15 @@ export default function TransactionsList() {
       ),
     },
     {
+      key: 'source',
+      header: 'Source',
+      render: (item: Transaction) => (
+        <span className="text-xs uppercase font-medium">{item?.source?.toUpperCase() || '-'}</span>
+      ),
+    },
+    {
       key: 'maskedpan',
-      header: 'Card/Source',
+      header: 'Card PAN',
       render: (item: Transaction) => (
         <span className="font-mono text-xs">{item.maskedpan || '-'}</span>
       ),

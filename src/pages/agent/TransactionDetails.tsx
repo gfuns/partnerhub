@@ -78,7 +78,7 @@ export default function AgentTransactionDetails() {
                   <CreditCard className="h-4 w-4" />
                   Terminal
                 </p>
-                <p className="font-mono font-medium">{transaction?.terminal_id ?? transaction?.terminal_name ?? '—'}</p>
+                <p className="font-mono font-medium">{transaction?.terminal?.id ?? transaction?.terminal_name ?? '—'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -105,14 +105,14 @@ export default function AgentTransactionDetails() {
                 <p className="text-sm text-muted-foreground">Fee</p>
                 <p className="text-xl font-semibold">{transaction?.fee_formatted ?? (transaction?.fee != null ? transaction.fee.toLocaleString() : '—')}</p>
               </div>
-              <div className="p-4 rounded-lg bg-muted/50">
+              {/* <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-xl font-semibold">
                   {transaction?.amount != null && transaction?.fee != null
                     ? ((transaction.amount + transaction.fee).toLocaleString())
                     : transaction?.amount_formatted ?? '—'}
                 </p>
-              </div>
+              </div> */}
             </div>
 
             <Separator />
@@ -129,8 +129,8 @@ export default function AgentTransactionDetails() {
                   <p className="font-medium">{transaction?.status_desc ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Gateway</p>
-                  <p className="font-medium">{transaction?.gateway ?? '—'}</p>
+                  <p className="text-xs text-muted-foreground">Source</p>
+                  <p className="font-medium">{transaction?.source?.toUpperCase() ?? '—'}</p>
                 </div>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">

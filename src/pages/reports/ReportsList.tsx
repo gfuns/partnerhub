@@ -85,15 +85,16 @@ export default function ReportsList() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Filter reports based on user type - hide commissions report for non-partner users
   const availableReports = reportTypes.filter(report => {
-    if (report.id === 'commissions') {
+    // Only partners should see commissions, settlements, and wallet
+    if (report.id === 'commissions' || report.id === 'settlements' || report.id === 'wallet') {
       return user?.loginType === 'partner';
     }
     return true;
   });
-  
+
   const [selected, setSelected] = useState(availableReports[0]?.id || reportTypes[0].id);
 
 

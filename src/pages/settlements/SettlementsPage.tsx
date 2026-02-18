@@ -109,6 +109,7 @@ export default function SettlementsPage() {
     pending_amount: number;
     paid_this_month: number;
     total_paid: number;
+    unswept_sweepable_amount?: number;
   } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
@@ -135,6 +136,10 @@ export default function SettlementsPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [settlementNotes, setSettlementNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Sweep unswept amounts
+  const [isSweepModalOpen, setIsSweepModalOpen] = useState(false);
+  const [isSweeping, setIsSweeping] = useState(false);
   
   // Delete account confirmation
   const [accountToDelete, setAccountToDelete] = useState<SettlementAccount | null>(null);
@@ -233,6 +238,20 @@ export default function SettlementsPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSweepConfirm = async () => {
+    setIsSweeping(true);
+    try {
+      let res = await settlementService.sweepTerminals();
+      toast({ title: res.status === 'success' ? 'Sweep started' : 'Sweep failed', description: res.message || 'Sweeping unswept balances from terminals into partner wallet' });
+      setIsSweepModalOpen(false);
+      loadData();
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Sweep failed', description: error.message || 'Please try again' });
+    } finally {
+      setIsSweeping(false);
     }
   };
 
@@ -654,6 +673,27 @@ export default function SettlementsPage() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Unswept Balances</CardTitle>
+            <CardDescription className="text-xs">Amount available to sweep from merchants</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-semibold">
+                  {formatCurrency(settlementStats?.unswept_sweepable_amount ?? 0)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">Across all merchants</div>
+              </div>
+              {(settlementStats?.unswept_sweepable_amount ?? 0) > 0 && (
+                <div>
+                  <Button onClick={() => setIsSweepModalOpen(true)}>Sweep</Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         
         <StatCard 
           title="Pending Settlements" 
@@ -921,9 +961,9 @@ export default function SettlementsPage() {
 
           <div className="space-y-4">
             {/* Stamp Duty Notice */}
-            {eligibility?.stamp_duty && eligibility.stamp_duty > 0 && (
+            {Number(eligibility?.stamp_duty ?? 0) > 0 && (
               <div className="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded text-yellow-800 text-sm">
-                <strong>Notice:</strong> This settlement will attract a stamp duty of {formatCurrency(eligibility.stamp_duty)}.
+                <strong>Notice:</strong> This settlement will attract a stamp duty of {formatCurrency(Number(eligibility?.stamp_duty ?? 0))}.
               </div>
             )}
             {/* Balance Display */}
@@ -1017,6 +1057,32 @@ export default function SettlementsPage() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sweep Unswept Balances Confirmation */}
+      <Dialog open={isSweepModalOpen} onOpenChange={setIsSweepModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Sweep</DialogTitle>
+            <DialogDescription>
+              This will sweep all pending unswept balances from all merchants into the partner wallet. The sweepable balance may change if any transactions occur between when this amount was calculated and when the sweep runs. Do you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">Amount to sweep</p>
+            <p className="text-2xl font-bold">{formatCurrency(settlementStats?.unswept_sweepable_amount ?? 0)}</p>
+          </div>
+
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsSweepModalOpen(false)} disabled={isSweeping}>Cancel</Button>
+              <Button onClick={handleSweepConfirm} disabled={isSweeping}>
+                {isSweeping ? 'Sweeping...' : 'Confirm Sweep'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -13,15 +13,21 @@ export default function WalletReport() {
   const [rows, setRows] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
 
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const resp = await reportsService.getWalletReport();
-      // API: { success, data: { rows: [], meta, ...summaryFields } }
+      const resp = await reportsService.getWalletReport({ start_date: startDate, end_date: endDate });
+      // API: { success, data: { wallet, terminal_balance, wallet_transactions, analysis, category_breakdown, filters } }
       const d = resp?.data ?? {};
-      setSummary(d);
-      setRows(Array.isArray(d.rows) ? d.rows : []);
+      const payload = d.data ?? d; // handle nested or direct
+      setSummary(payload);
+      const txs = Array.isArray(payload.wallet_transactions)
+        ? payload.wallet_transactions
+        : (Array.isArray(payload.wallet_transactions?.data) ? payload.wallet_transactions.data : []);
+      setRows(txs);
     } catch (err) {
       console.warn('Failed to load wallet', err);
     } finally {
@@ -32,14 +38,23 @@ export default function WalletReport() {
   // Initial load on mount
   useEffect(() => {
     fetchReport();
-  }, []);
+  }, [startDate, endDate]);
 
   const columns = [
-    { key: 'date', header: 'Date', render: (r: any) => r.date },
-    { key: 'type', header: 'Type', render: (r: any) => r.type },
-    { key: 'amount', header: 'Amount', render: (r: any) => r.amount },
-    { key: 'balance_after', header: 'Balance', render: (r: any) => r.balance_after },
+    { key: 'date', header: 'Date', render: (r: any) => formatDate(r.created_at || r.date) },
+    { key: 'type', header: 'Type', render: (r: any) => r.type || r.title || '—' },
+    { key: 'amount', header: 'Amount', render: (r: any) => formatCurrency(Number(r.amount || r.value || 0)) },
+    { key: 'balance_after', header: 'Balance', render: (r: any) => formatCurrency(Number(r.balance_after || r.new_balance || 0)) },
   ];
+
+  function formatDate(dateStr?: string) {
+    if (!dateStr) return '-';
+    try { return new Date(dateStr).toLocaleString('en-NG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return dateStr; }
+  }
+
+  function formatCurrency(amount: number) {
+    try { return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 2 }).format(amount); } catch { return String(amount); }
+  }
 
   return (
     <div>
@@ -48,14 +63,15 @@ export default function WalletReport() {
       <div className="mb-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/reports')}>Back to Reports</Button>
       </div>
-      <FiltersPanel onRangeChange={() => {}} onRun={fetchReport} />
+      <FiltersPanel startDate={startDate} endDate={endDate} onRangeChange={(s, e) => { setStartDate(s); setEndDate(e); }} onRun={fetchReport} />
       <div className="flex justify-end mb-6">
-        <ExportButtons reportKey="wallet" params={{}} />
+        {/* <ExportButtons reportKey="wallet" params={{ start_date: startDate, end_date: endDate }} /> */}
       </div>
-      <div className="grid gap-4 md:grid-cols-3 mb-6">
-        <StatCard title="Current Balance" value={summary?.current_balance ?? '₦0.00'} />
-        <StatCard title="Available" value={summary?.available_balance ?? '₦0.00'} />
-        <StatCard title="Pending" value={summary?.pending_balance ?? '₦0.00'} />
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <StatCard title="Wallet Balance" value={formatCurrency(Number(summary?.wallet?.balance ?? 0))} />
+        <StatCard title="Terminal Balance" value={formatCurrency(Number(summary?.terminal_balance ?? 0))} />
+        <StatCard title="Unswept Sweepable" value={formatCurrency(Number(summary?.analysis?.total_unswept_sweepable ?? summary?.analysis?.total_unsweepable ?? 0))} />
+        <StatCard title="Total Swept" value={formatCurrency(Number(summary?.wallet?.total_swept ?? 0))} />
       </div>
       <DataTable columns={columns} data={rows} emptyMessage={loading ? "Loading..." : "No wallet transactions found"} />
     </div>

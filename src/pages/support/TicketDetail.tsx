@@ -39,12 +39,13 @@ export default function TicketDetail() {
   const [internalNoteAttachments, setInternalNoteAttachments] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const internalFileRef = useRef<HTMLInputElement | null>(null);
-  
+
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusComment, setStatusComment] = useState('');
   const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
-  const [escalateReason, setEscalateReason] = useState('');  
+  const [escalateReason, setEscalateReason] = useState('');
+  const login_type = localStorage.getItem('login_type') || 'partner';
 
   const { data, isLoading } = useQuery({
     queryKey: ['support_ticket', id],
@@ -53,6 +54,17 @@ export default function TicketDetail() {
   });
 
   const ticket = data?.data;
+
+  const parsedMeta: any = (() => {
+    const raw = ticket?.meta;
+    if (!raw) return null;
+    if (typeof raw === 'object') return raw;
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  })();
 
   const addMessageMutation = useMutation({
     mutationFn: (payload: any) => supportService.addMessage(id!, payload),
@@ -123,8 +135,10 @@ export default function TicketDetail() {
 
   const handleSend = () => {
     if (!message.trim() && attachments.length === 0) return toast({ variant: 'destructive', title: 'Validation', description: 'Message or attachment required' });
+    let sender_type = 'partner_user';
+    if (login_type === 'agent') sender_type = 'agent';
 
-    const payload: any = { message, is_internal: false };
+    const payload: any = { message, is_internal: false, sender_type };
     if (attachments.length) payload.attachments = attachments;
     addMessageMutation.mutate(payload);
   };
@@ -216,6 +230,12 @@ export default function TicketDetail() {
   const publicMessages = ticket.messages || [];
   const canEscalate = ticket.status !== 'closed' && ticket.status !== 'canceled' && !ticket.escalated_to_xtrapay_at;
   const canChangeStatus = ticket.status !== 'closed' && ticket.status !== 'canceled';
+  let open_by_type = ticket.opened_by_type || '';
+  if (open_by_type === 'agent') {
+    open_by_type = 'Merchant';
+  } else {
+    open_by_type = open_by_type.replace(/_/g, ' ').charAt(0).toUpperCase() + open_by_type.replace(/_/g, ' ').slice(1);
+  }
 
   return (
     <div className="space-y-6">
@@ -282,7 +302,7 @@ export default function TicketDetail() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <div className="font-medium">{m.sender_name}</div>
-                          <div className="text-xs text-muted-foreground">{m.sender_type} • {formatDate(m.created_at)}</div>
+                          <div className="text-xs text-muted-foreground">{m.sender_type === 'agent' ? 'Merchant' : (m.sender_type === 'partner_user' ? 'Partner' : m.sender_type?.replace(/_/g, ' '))} • {formatDate(m.created_at)}</div>
                         </div>
                       </div>
                       <div className="text-sm whitespace-pre-wrap">{m.message}</div>
@@ -298,11 +318,11 @@ export default function TicketDetail() {
                               const isImage = a.file_type?.startsWith('image/');
                               const isPdf = a.file_type === 'application/pdf';
                               return (
-                                <a 
-                                  key={a.id} 
-                                  href={a.full_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  key={a.id}
+                                  href={a.full_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-sm text-primary hover:underline p-2 rounded border hover:bg-muted/50 transition-colors"
                                 >
                                   {isImage ? (
@@ -373,11 +393,11 @@ export default function TicketDetail() {
                               const isImage = a.file_type?.startsWith('image/');
                               const isPdf = a.file_type === 'application/pdf';
                               return (
-                                <a 
-                                  key={a.id} 
-                                  href={a.full_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  key={a.id}
+                                  href={a.full_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="flex items-center gap-2 text-sm text-primary hover:underline p-2 rounded border hover:bg-muted/50 transition-colors"
                                 >
                                   {isImage ? (
@@ -429,10 +449,30 @@ export default function TicketDetail() {
                 <DetailRow label="Category" value={ticket.category?.name} />
                 <DetailRow label="Status" value={<Badge className={getStatusColor(ticket.status)}>{ticket.status?.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.status?.replace(/_/g, ' ').slice(1)}</Badge>} />
                 <DetailRow label="Priority" value={<Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>} />
-                <DetailRow label="Origin" value={ticket.origin === 'agent_hub' ? 'Merchant Hub' : ticket.origin.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.origin.replace(/_/g, ' ').slice(1)} />
-                <DetailRow label="Opened By" value={`${ticket.opened_by_type?.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.opened_by_type?.replace(/_/g, ' ').slice(1)} - ${ticket?.opened_by ? ticket?.opened_by?.first_name + ' ' +  ticket?.opened_by?.last_name|| ticket?.opened_by?.name  : ''}`} />
+                <DetailRow label="Origin" value={ticket.origin === 'agent_dashboard' ? 'Merchant Hub' : ticket.origin.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.origin.replace(/_/g, ' ').slice(1)} />
+                <DetailRow label="Opened By" value={`${open_by_type} - ${ticket?.opened_by ? ticket?.opened_by?.first_name + ' ' + ticket?.opened_by?.last_name || ticket?.opened_by?.name : ''}`} />
                 <DetailRow label="Created At" value={formatDate(ticket.created_at)} />
                 <DetailRow label="Last Updated" value={formatDate(ticket.updated_at)} />
+                <DetailRow label="Description" value={<div className="whitespace-pre-wrap">{ticket.description || '—'}</div>} />
+                {parsedMeta && (
+                  <DetailRow
+                    label="Meta"
+                    value={(
+                      <div className="text-sm">
+                        {parsedMeta.date_from && <div><strong>Date From:</strong> {parsedMeta.date_from}</div>}
+                        {parsedMeta.date_to && <div><strong>Date To:</strong> {parsedMeta.date_to}</div>}
+                        {parsedMeta.disputed_amount != null && <div><strong>Disputed Amount:</strong> {formatCurrency(parsedMeta.disputed_amount)}</div>}
+                        {/* {parsedMeta.transactions && Array.isArray(parsedMeta.transactions) && (
+                          <div><strong>Transactions:</strong> {parsedMeta.transactions.join(', ')}</div>
+                        )} */}
+                        {/* show any other meta keys */}
+                        {Object.keys(parsedMeta).filter(k => !['date_from', 'date_to', 'disputed_amount', 'transactions'].includes(k)).map((k) => (
+                          <div key={k}><strong>{k}:</strong> {String(parsedMeta[k])}</div>
+                        ))}
+                      </div>
+                    )}
+                  />
+                )}
                 {ticket.last_response_at && <DetailRow label="Last Response" value={formatDate(ticket.last_response_at)} />}
               </DetailCard>
 
@@ -506,11 +546,32 @@ export default function TicketDetail() {
 
           {ticket.attachments && ticket.attachments.length > 0 && (
             <DetailCard title="Attachments">
-              {ticket.attachments.map((a: any) => (
-                <a key={a.id} href={a.file_url} target="_blank" rel="noreferrer" className="block text-sm text-primary hover:underline mb-1">
-                  {a.file_name}
-                </a>
-              ))}
+              {ticket.attachments.map((a: any) => {
+                const fileName = a.file_path?.split('/').pop() || a.file_name || 'attachment';
+                const isImage = a.file_type?.startsWith('image/');
+                const isPdf = a.file_type === 'application/pdf';
+                return (
+                  <a
+                    key={a.id}
+                    href={a.full_url || a.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline p-2 rounded border hover:bg-muted/50 transition-colors mb-1"
+                  >
+                    {isImage ? (
+                      <Image className="h-4 w-4 flex-shrink-0" />
+                    ) : isPdf ? (
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                    ) : (
+                      <File className="h-4 w-4 flex-shrink-0" />
+                    )}
+                    <span className="truncate">{fileName}</span>
+                    <span className="text-xs text-muted-foreground ml-auto flex-shrink-0">
+                      {a.file_size ? (a.file_size / 1024).toFixed(1) : '—'} KB
+                    </span>
+                  </a>
+                );
+              })}
             </DetailCard>
           )}
         </div>

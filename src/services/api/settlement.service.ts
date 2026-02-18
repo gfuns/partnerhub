@@ -119,6 +119,7 @@ export interface SettlementStats {
   pending_amount: number;
   paid_this_month: number;
   total_paid: number;
+  unswept_sweepable_amount?: number;
 }
 
 export interface SettlementRequestsData {
@@ -252,6 +253,13 @@ class SettlementService {
    */
   async getSettlements(params?: SettlementRequestsParams): Promise<SettlementRequestsResponse> {
     return apiService.get<SettlementRequestsResponse>(this.baseUrl, { params });
+  }
+
+  /**
+   * Sweep unswept balances from terminals into partner wallet
+   */
+  async sweepTerminals(): Promise<{ status: string; message: string; data?: any }> {
+    return apiService.post(`${this.baseUrl}/sweep-terminals`);
   }
 
   /**

@@ -51,6 +51,7 @@ class SupportService {
       const formData = new FormData();
       formData.append('message', data.message);
       if (data.is_internal) formData.append('is_internal', 'true');
+      if ((data as any).sender_type) formData.append('sender_type', (data as any).sender_type);
       data.attachments.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file);
       });
@@ -59,6 +60,7 @@ class SupportService {
     return apiService.post(`/support/tickets/${ticketId}/messages`, {
       message: data.message,
       is_internal: data.is_internal,
+      ...(data as any).sender_type ? { sender_type: (data as any).sender_type } : {},
     });
   }
 
@@ -91,8 +93,21 @@ class SupportService {
       const disputed = (data as any).disputed_amount ?? (data as any).amount;
       const txs = (data as any).transactions ?? (data as any).transaction_ids;
       if (disputed) formData.append('disputed_amount', String(disputed));
-      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
-      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if ((data as any).start_date) {
+        formData.append('start_date', (data as any).start_date);
+        formData.append('date_from', (data as any).start_date);
+      }
+      if ((data as any).end_date) {
+        formData.append('end_date', (data as any).end_date);
+        formData.append('date_to', (data as any).end_date);
+      }
+      if ((data as any).meta) {
+        try {
+          formData.append('meta', JSON.stringify((data as any).meta));
+        } catch (e) {
+          // ignore
+        }
+      }
       if (txs && Array.isArray(txs)) {
         txs.forEach((id: any) => formData.append('transactions[]', String(id)));
       }
@@ -151,8 +166,19 @@ class SupportService {
       const disputedP = (data as any).disputed_amount ?? (data as any).amount;
       const txsP = (data as any).transactions ?? (data as any).transaction_ids;
       if (disputedP) formData.append('disputed_amount', String(disputedP));
-      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
-      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if ((data as any).start_date) {
+        formData.append('start_date', (data as any).start_date);
+        formData.append('date_from', (data as any).start_date);
+      }
+      if ((data as any).end_date) {
+        formData.append('end_date', (data as any).end_date);
+        formData.append('date_to', (data as any).end_date);
+      }
+      if ((data as any).meta) {
+        try {
+          formData.append('meta', JSON.stringify((data as any).meta));
+        } catch (e) {}
+      }
       if (txsP && Array.isArray(txsP)) {
         txsP.forEach((id: any) => formData.append('transactions[]', String(id)));
       }
@@ -182,8 +208,19 @@ class SupportService {
       const disputedT = (data as any).disputed_amount ?? (data as any).amount;
       const txsT = (data as any).transactions ?? (data as any).transaction_ids;
       if (disputedT) formData.append('disputed_amount', String(disputedT));
-      if ((data as any).start_date) formData.append('start_date', (data as any).start_date);
-      if ((data as any).end_date) formData.append('end_date', (data as any).end_date);
+      if ((data as any).start_date) {
+        formData.append('start_date', (data as any).start_date);
+        formData.append('date_from', (data as any).start_date);
+      }
+      if ((data as any).end_date) {
+        formData.append('end_date', (data as any).end_date);
+        formData.append('date_to', (data as any).end_date);
+      }
+      if ((data as any).meta) {
+        try {
+          formData.append('meta', JSON.stringify((data as any).meta));
+        } catch (e) {}
+      }
       if (txsT && Array.isArray(txsT)) {
         txsT.forEach((id: any) => formData.append('transactions[]', String(id)));
       }

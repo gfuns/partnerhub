@@ -135,6 +135,8 @@ class ReportsService {
 
   // Other report endpoints
   async getSettlements(params?: ReportsQuery) {
+    console.log(params);
+    
     return apiService.get('/reports/settlements', { params });
   }
 

@@ -66,6 +66,26 @@ export interface TerminalStats {
     successful: number;
     failed: number;
   };
+  inflow_totals?: {
+    card?: {
+      today_count: number;
+      today_volume: number;
+      month_count: number;
+      month_volume: number;
+    };
+    transfer?: {
+      today_count: number;
+      today_volume: number;
+      month_count: number;
+      month_volume: number;
+    };
+    bill?: {
+      today_count: number;
+      today_volume: number;
+      month_count: number;
+      month_volume: number;
+    };
+  };
   last_transaction?: {
     created_at: string;
     status: string;
