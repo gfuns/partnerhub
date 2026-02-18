@@ -46,25 +46,25 @@ export default function PartnerDashboard() {
   // Transform data for charts
   const transactionVolumeData = dashboardData?.transaction_volume
     ? dashboardData.transaction_volume.labels.map((label: string, index: number) => ({
-        date: label,
-        volume: dashboardData.transaction_volume.data[index],
-      }))
+      date: label,
+      volume: dashboardData.transaction_volume.data[index],
+    }))
     : [];
 
   const terminalActivityData = dashboardData?.terminal_activity
     ? dashboardData.terminal_activity.labels.map((label: string, index: number) => ({
-        hour: label,
-        active: dashboardData.terminal_activity.data[index],
-      }))
+      hour: label,
+      active: dashboardData.terminal_activity.data[index],
+    }))
     : [];
 
   const recentTransactions = dashboardData?.recent_transactions || [];
 
   const columns = [
     { key: 'terminal', header: 'Terminal' },
-    { key: 'agent', header: 'Agent' },
-    { 
-      key: 'amount_formatted', 
+    { key: 'agent', header: 'Merchant' },
+    {
+      key: 'amount_formatted',
       header: 'Amount',
       render: (item: any) => item.amount_formatted,
     },
@@ -95,7 +95,7 @@ export default function PartnerDashboard() {
     <div>
       <PageHeader
         title={`Welcome back, ${displayName}`}
-        // description={`Here's what's happening with ${partner?.name || 'your business'} today.`}
+      // description={`Here's what's happening with ${partner?.name || 'your business'} today.`}
       />
 
       {/* Stats Grid */}
@@ -104,9 +104,9 @@ export default function PartnerDashboard() {
           title="Total Terminals"
           value={dashboardData?.stats?.total_terminals?.value?.toString() || '0'}
           icon={CreditCard}
-          change={{ 
-            value: dashboardData?.stats?.total_terminals?.change || 0, 
-            label: dashboardData?.stats?.total_terminals?.change_label || 'from last month' 
+          change={{
+            value: dashboardData?.stats?.total_terminals?.change || 0,
+            label: dashboardData?.stats?.total_terminals?.change_label || 'from last month'
           }}
           trend={dashboardData?.stats?.total_terminals?.change && dashboardData.stats.total_terminals.change > 0 ? 'up' : 'down'}
         />
@@ -114,9 +114,9 @@ export default function PartnerDashboard() {
           title="Active Terminals"
           value={dashboardData?.stats?.active_terminals?.value?.toString() || '0'}
           icon={TrendingUp}
-          change={{ 
-            value: dashboardData?.stats?.active_terminals?.percentage || 0, 
-            label: dashboardData?.stats?.active_terminals?.label || 'currently online' 
+          change={{
+            value: dashboardData?.stats?.active_terminals?.percentage || 0,
+            label: dashboardData?.stats?.active_terminals?.label || 'currently online'
           }}
           trend="up"
         />
@@ -124,9 +124,9 @@ export default function PartnerDashboard() {
           title="Today's Volume"
           value={dashboardData?.stats?.todays_volume?.formatted || '₦0.00'}
           icon={Receipt}
-          change={{ 
-            value: dashboardData?.stats?.todays_volume?.change || 0, 
-            label: dashboardData?.stats?.todays_volume?.change_label || 'vs yesterday' 
+          change={{
+            value: dashboardData?.stats?.todays_volume?.change || 0,
+            label: dashboardData?.stats?.todays_volume?.change_label || 'vs yesterday'
           }}
           trend={dashboardData?.stats?.todays_volume?.change && dashboardData.stats.todays_volume.change > 0 ? 'up' : 'down'}
         />
@@ -134,9 +134,9 @@ export default function PartnerDashboard() {
           title="Failed Transactions"
           value={dashboardData?.stats?.failed_transactions?.value?.toString() || '0'}
           icon={AlertTriangle}
-          change={{ 
-            value: dashboardData?.stats?.failed_transactions?.change || 0, 
-            label: dashboardData?.stats?.failed_transactions?.change_label || 'from yesterday' 
+          change={{
+            value: dashboardData?.stats?.failed_transactions?.change || 0,
+            label: dashboardData?.stats?.failed_transactions?.change_label || 'from yesterday'
           }}
           trend={dashboardData?.stats?.failed_transactions?.change && dashboardData.stats.failed_transactions.change < 0 ? 'down' : 'up'}
         />
