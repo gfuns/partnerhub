@@ -76,7 +76,7 @@ export default function AgentTransactions() {
       if (dateTo) params.end_date = format(dateTo, 'yyyy-MM-dd');
       return transactionsService.getTransactions(params);
     },
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   const transactions = txResp?.data ?? [];

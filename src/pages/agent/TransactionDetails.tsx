@@ -18,7 +18,7 @@ export default function AgentTransactionDetails() {
       enabled: !!id,
     });
 
-    const transaction = txResp?.data?.transaction;
+    const transaction = (txResp?.data as any)?.transaction ?? txResp?.data;
 
     const gatewayResponse = (() => {
       try {

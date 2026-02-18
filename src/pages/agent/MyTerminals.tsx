@@ -7,7 +7,7 @@ import { ActionButton } from '@/components/ActionButton';
 import { StatCard } from '@/components/StatCard';
 import { CreditCard, Wifi, WifiOff } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import terminalsService, { Terminal, TransactionListParams, Transaction } from '@/services/api/terminals.service';
+import terminalsService, { Terminal, TransactionListParams, Transaction, TerminalListResponse } from '@/services/api/terminals.service';
 import { useState } from 'react';
 import { TablePagination } from '@/components/TablePagination';
 
@@ -23,15 +23,15 @@ export default function MyTerminals() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const { data, isLoading } = useQuery({
+  const { data: queryData, isLoading } = useQuery<TerminalListResponse>({
     queryKey: ['agent_terminals', currentPage, pageSize],
     queryFn: () => terminalsService.getTerminals({ per_page: pageSize, page: currentPage }),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
-  const terminals: Terminal[] = data?.data ?? [];
+  const terminals: Terminal[] = queryData?.data ?? [];
 
-  const meta = data?.meta;
+  const meta = queryData?.meta;
   const total = meta?.total ?? terminals.length;
   const totalPages = meta?.last_page ?? 1;
   const onlineCount = terminals.filter(t => t.status === 'active').length;

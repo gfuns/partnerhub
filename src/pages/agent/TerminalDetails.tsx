@@ -9,14 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { DetailCard, DetailRow } from '@/components/DetailCard';
-import terminalsService from '@/services/api/terminals.service';
+import terminalsService, { Terminal } from '@/services/api/terminals.service';
 
-function mapStatus(apiStatus: Terminal['status']) {
-  if (!apiStatus) return 'inactive';
+function mapStatus(apiStatus: string | undefined): 'active' | 'suspended' | 'revoked' {
+  if (!apiStatus) return 'suspended';
   if (apiStatus === 'active') return 'active';
-  if (apiStatus === 'suspended') return 'suspended';
   if (apiStatus === 'revoked') return 'revoked';
-  return 'inactive';
+  return 'suspended';
 }
 
 export default function AgentTerminalDetails() {

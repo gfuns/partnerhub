@@ -16,11 +16,13 @@ export interface Terminal {
   name?: string;
   status: 'active' | 'suspended' | 'revoked';
   online_status?: 'online' | 'offline';
+  is_online?: boolean;
   partner_id: number;
   agent_id?: number;
   agent?: Agent;
   assigned_at?: string;
   last_seen_at?: string;
+  last_heartbeat_at?: string;
   created_at: string;
   updated_at: string;
   balance?: string;
@@ -45,6 +47,7 @@ export interface TerminalListParams {
 export interface TerminalListResponse {
   success: boolean;
   data: Terminal[];
+  stats?: any;
   meta: {
     current_page: number;
     last_page: number;
@@ -147,6 +150,7 @@ export interface Transaction {
   new_bal: string;
   from: string;
   to: string;
+  inflow?: string;
   profit: string;
   sys_fee: string;
   point: string;

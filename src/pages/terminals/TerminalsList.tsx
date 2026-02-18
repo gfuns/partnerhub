@@ -209,7 +209,7 @@ export default function TerminalsList() {
       header: 'Status',
       render: (item: Terminal) => (
         <StatusBadge 
-          status={item.status === 'active' ? 'Active' : item.status === 'revoked' ? 'Revoked' : 'Inactive'} 
+          status={item.status === 'active' ? 'active' : item.status === 'revoked' ? 'revoked' : 'suspended'} 
           size="sm" 
         />
       ),
@@ -218,7 +218,7 @@ export default function TerminalsList() {
       key: 'terminal_balance', 
       header: "Terminal Balance",
       render: (item: Terminal) => (
-        <span className="font-medium">{formatCurrency(item.balance)}</span>
+        <span className="font-medium">{formatCurrency(Number(item.balance ?? 0))}</span>
       ),
     },
     { 

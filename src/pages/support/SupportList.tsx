@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { DataTable } from '@/components/DataTable';
-import { supportService, Ticket } from '@/services/api/support.service';
+import { supportService } from '@/services/api/support.service';
+import type { Ticket } from '@/types/support';
 import { TablePagination } from '@/components/TablePagination';
 import { TICKET_STATUS_OPTIONS } from '@/types/support';
 import CreateTicketModal from '@/components/support/CreateTicketModal';
@@ -38,7 +39,7 @@ export default function SupportList() {
     queryFn: () => supportService.getTickets({ page, per_page: perPage, status, category_id: categoryId, search }),
   });
 
-  const tickets: Ticket[] = data?.data ?? [];
+  const tickets: any[] = data?.data ?? [];
   const meta = data?.meta;
 
   const columns = [
@@ -55,7 +56,7 @@ export default function SupportList() {
     },
     { key: 'priority', header: 'Priority', render: (t: Ticket) => t.priority ?? '-' },
     { key: 'status', header: 'Status', render: (t: Ticket) => t.status ?? '-' },
-    { key: 'assigned_to', header: 'Assigned To', render: (t: Ticket) => t.assigned_to ?? '-' },
+    { key: 'assigned_to', header: 'Assigned To', render: (t: any) => t.assigned_to ?? t.assigned_to_type ?? '-' },
     { key: 'created_at', header: 'Created At', render: (t: Ticket) => formatDate(t.created_at) },
     { key: 'updated_at', header: 'Last Updated', render: (t: Ticket) => formatDate(t.updated_at) },
   ];
