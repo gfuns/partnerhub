@@ -56,7 +56,7 @@ export default function TicketDetail() {
   const ticket = data?.data;
 
   const parsedMeta: any = (() => {
-    const raw = ticket?.meta;
+    const raw = (ticket as any)?.meta;
     if (!raw) return null;
     if (typeof raw === 'object') return raw;
     try {
@@ -450,7 +450,7 @@ export default function TicketDetail() {
                 <DetailRow label="Status" value={<Badge className={getStatusColor(ticket.status)}>{ticket.status?.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.status?.replace(/_/g, ' ').slice(1)}</Badge>} />
                 <DetailRow label="Priority" value={<Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>} />
                 <DetailRow label="Origin" value={ticket.origin === 'agent_dashboard' ? 'Merchant Hub' : ticket.origin.replace(/_/g, ' ').charAt(0).toUpperCase() + ticket.origin.replace(/_/g, ' ').slice(1)} />
-                <DetailRow label="Opened By" value={`${open_by_type} - ${ticket?.opened_by ? ticket?.opened_by?.first_name + ' ' + ticket?.opened_by?.last_name || ticket?.opened_by?.name : ''}`} />
+                <DetailRow label="Opened By" value={`${open_by_type} - ${(ticket as any)?.opened_by ? ((ticket as any)?.opened_by?.first_name + ' ' + (ticket as any)?.opened_by?.last_name) || (ticket as any)?.opened_by?.name : ''}`} />
                 <DetailRow label="Created At" value={formatDate(ticket.created_at)} />
                 <DetailRow label="Last Updated" value={formatDate(ticket.updated_at)} />
                 <DetailRow label="Description" value={<div className="whitespace-pre-wrap">{ticket.description || '—'}</div>} />

@@ -126,6 +126,7 @@ export interface AgentListParams {
 export interface AgentListResponse {
   success: boolean;
   data: Agent[];
+  stats?: any;
   meta: {
     current_page: number;
     per_page: number;

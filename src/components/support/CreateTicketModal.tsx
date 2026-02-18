@@ -215,7 +215,7 @@ export default function CreateTicketModal({ open, onOpenChange }: Props) {
     const resp = await supportService.createTicket(payload);
     toast({ title: 'Ticket Created', description: 'Ticket created successfully' });
     // Refresh ticket list
-    try { qc.invalidateQueries({ queryKey: ['support_tickets'] }); } catch (e) { qc.invalidateQueries(['support_tickets']); }
+    try { qc.invalidateQueries({ queryKey: ['support_tickets'] }); } catch (e) { /* ignore */ }
     onOpenChange(false);
     const newId = resp?.data?.ticket?.id;
     if (newId) navigate(`/support/${newId}`);

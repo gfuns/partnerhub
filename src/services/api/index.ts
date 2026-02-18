@@ -143,15 +143,7 @@ export type {
   UpdateSweepConfigRequest,
 } from './wallet.service';
 
-export type {
-  Ticket,
-  TicketMessage,
-  TicketListParams,
-  TicketListResponse,
-  TicketDetailsResponse,
-  CreateTicketRequest,
-  Category,
-} from './support.service';
+// Support types are exported from @/types/support directly
 
 // Settlement types
 export type {
