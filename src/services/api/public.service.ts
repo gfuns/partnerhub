@@ -40,6 +40,7 @@ export interface PublicBanksResponse {
 export interface PublicVerifyAccountRequest {
   account_number: string;
   bank_code: string;
+  subdomain?: string; // optional context for better error messages/logging on backend
 }
 
 export interface PublicVerifyAccountResponse {
@@ -113,8 +114,9 @@ class PublicService {
   }
 
   /** Get list of banks (no auth required) */
-  async getBanks(): Promise<PublicBanksResponse> {
-    const resp = await publicAxios.get('/api/partner-hub/public/banks');
+  async getBanks(subdomain?: string): Promise<PublicBanksResponse> {
+    const url = '/api/partner-hub/public/banks' + (subdomain ? `?subdomain=${encodeURIComponent(subdomain)}` : '');
+    const resp = await publicAxios.get(url);
     return resp.data;
   }
 
@@ -128,7 +130,15 @@ class PublicService {
    * Onboard a new merchant (agent creation + KYC initiation)
    * This is the combined public endpoint
    */
-  async onboardMerchant(data: PublicOnboardMerchantRequest): Promise<PublicOnboardMerchantResponse> {
+  async onboardMerchant(data: PublicOnboardMerchantRequest | FormData): Promise<PublicOnboardMerchantResponse> {
+    // Support both JSON payloads and FormData (with files)
+    if (data instanceof FormData) {
+      const resp = await publicAxios.post('/api/partner-hub/public/onboard-merchant', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return resp.data;
+    }
+
     const resp = await publicAxios.post('/api/partner-hub/public/onboard-merchant', data);
     return resp.data;
   }

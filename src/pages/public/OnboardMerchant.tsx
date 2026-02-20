@@ -152,6 +152,8 @@ export default function OnboardMerchant() {
   const [lookupBankCode, setLookupBankCode] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [lookupDone, setLookupDone] = useState(false);
+  const [accountVerifyLoading, setAccountVerifyLoading] = useState(false);
+  const [accountVerified, setAccountVerified] = useState(false);
 
   // Form data
   const [businessForm, setBusinessForm] = useState<BusinessFormData>({
@@ -187,7 +189,7 @@ export default function OnboardMerchant() {
       .finally(() => setLoadingBrand(false));
 
     // Load banks (try public endpoint first)
-    publicService.getBanks()
+    publicService.getBanks(subdomain)
       .then((r) => { if (r?.data) setBanks(r.data); })
       .catch(() => {
         // fallback to authenticated endpoint if needed
@@ -199,23 +201,31 @@ export default function OnboardMerchant() {
     if (!lookupAccountNumber || !lookupBankCode) return;
     setVerifyLoading(true);
     try {
-      const resp = await publicService.verifyAccount({ account_number: lookupAccountNumber, bank_code: lookupBankCode });
-      if (resp?.data) {
+      const resp = await publicService.verifyAccount({ account_number: lookupAccountNumber, bank_code: lookupBankCode, subdomain: subdomain });
+      if (resp?.success && resp?.data) {
         const bank = banks.find(b => b.code === lookupBankCode);
         setBusinessForm(prev => ({
           ...prev,
-          contact_name: resp.data.accountName || prev.contact_name,
+          contact_name: `${resp?.data?.first_name} ${resp?.data?.last_name}` || prev.contact_name,
+          contact_phone: resp?.data?.mobile || '',
+          contact_email: resp?.data?.email || '',
+          owner_first_name: resp?.data?.first_name || '',
+          owner_last_name: resp?.data?.last_name || '',
+          owner_email: resp?.data?.email || '',
+          owner_phone: resp?.data?.mobile || '',
         }));
         setKycForm(prev => ({
           ...prev,
           account_number: lookupAccountNumber,
-          account_name: resp.data.accountName || '',
+          account_name: resp.data.accountName || `${resp?.data?.first_name} ${resp?.data?.last_name}` || '',
           bank_name: bank?.name || '',
           bank_code: lookupBankCode,
           bvn: resp.data.bvn || prev.bvn,
         }));
         setLookupDone(true);
         sonnerToast.success('Account verified', { description: `Account holder: ${resp.data.accountName}` });
+      } else {
+        sonnerToast.error('Could not verify account', { description: resp?.message || 'Please check the account number and bank selected.' });
       }
     } catch {
       sonnerToast.error('Could not verify account', { description: 'Please check the account number and bank selected.' });
@@ -223,6 +233,65 @@ export default function OnboardMerchant() {
       setVerifyLoading(false);
     }
   };
+
+  // Auto-verify account when account number reaches 10 digits and bank_code is selected
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const acct = kycForm.account_number || '';
+    const bank = kycForm.bank_code || '';
+
+    // Clear verification when incomplete
+    if (acct.length < 10 || !bank) {
+      setAccountVerified(false);
+      // remove any previous account_number error
+      setKycErrors(prev => {
+        const copy = { ...prev };
+        delete copy.account_number;
+        return copy;
+      });
+      return;
+    }
+
+    // debounce to avoid repeated calls while typing
+    timer = setTimeout(async () => {
+      setAccountVerifyLoading(true);
+      try {
+        const resp = await publicService.verifyAccount({ account_number: acct, bank_code: bank, subdomain });
+        if (resp?.success && resp?.data) {
+          setKycForm(prev => ({
+            ...prev,
+            account_name: resp.data.accountName || resp.data.account_name || prev.account_name,
+            bvn: resp.data.bvn || prev.bvn,
+          }));
+
+          setBusinessForm(prev => ({
+            ...prev,
+            contact_name: resp?.data?.first_name ? `${resp.data.first_name} ${resp.data.last_name}` : prev.contact_name,
+            contact_phone: resp?.data?.mobile || prev.contact_phone,
+            contact_email: resp?.data?.email || prev.contact_email,
+          }));
+
+          setAccountVerified(true);
+          setKycErrors(prev => {
+            const copy = { ...prev };
+            delete copy.account_number;
+            return copy;
+          });
+          sonnerToast.success('Account verified', { description: `Account holder: ${resp.data.accountName}` });
+        } else {
+          setAccountVerified(false);
+          setKycErrors(prev => ({ ...prev, account_number: resp?.message || 'Could not verify account' }));
+        }
+      } catch (err) {
+        setAccountVerified(false);
+        setKycErrors(prev => ({ ...prev, account_number: 'Could not verify account' }));
+      } finally {
+        setAccountVerifyLoading(false);
+      }
+    }, 600);
+
+    return () => { if (timer) clearTimeout(timer); };
+  }, [kycForm.account_number, kycForm.bank_code, subdomain]);
 
   // ── Validation ───────────────────────────────────────────────────────────
   const validateBusiness = (): boolean => {
@@ -296,9 +365,28 @@ export default function OnboardMerchant() {
         partner_subdomain: subdomain || undefined,
       };
 
-      const resp = await publicService.onboardMerchant(payload);
+      let resp: any;
 
-      // If we have a kyc_token, upload documents
+      if (uploadedDocs.length > 0) {
+        // Send as multipart/form-data including files so backend can process them in one request
+        const form = new FormData();
+        // Append scalar fields
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) form.append(k, String(v));
+        });
+
+        // Append documents as documents[i][document_type], documents[i][file]
+        uploadedDocs.forEach((d, i) => {
+          form.append(`documents[${i}][document_type]`, d.document_type);
+          form.append(`documents[${i}][file]`, d.file);
+        });
+
+        resp = await publicService.onboardMerchant(form);
+      } else {
+        resp = await publicService.onboardMerchant(payload);
+      }
+
+      // If backend returned a kyc_token and we still have files (fallback), upload them individually
       if (resp?.data?.kyc_token && uploadedDocs.length > 0) {
         for (const doc of uploadedDocs) {
           try {
@@ -507,8 +595,8 @@ export default function OnboardMerchant() {
                   <div className={cn(
                     'w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all',
                     currentStep > step.id ? 'bg-primary text-primary-foreground' :
-                    currentStep === step.id ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
-                    'bg-muted text-muted-foreground'
+                      currentStep === step.id ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
+                        'bg-muted text-muted-foreground'
                   )}>
                     {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
                   </div>
@@ -546,6 +634,8 @@ export default function OnboardMerchant() {
             form={kycForm}
             errors={kycErrors}
             banks={banks}
+            subdomain={subdomain}
+            isReturning={isReturning}
             onChange={(field, value) => {
               setKycForm(prev => ({ ...prev, [field]: value as any }));
               if (kycErrors[field]) setKycErrors(prev => ({ ...prev, [field]: undefined }));
@@ -730,10 +820,12 @@ function BusinessInfoStep({ form, errors, onChange, isReturning, onBack }: {
 
 // ─── Step 2: KYC Profile ──────────────────────────────────────────────────────
 
-function KycProfileStep({ form, errors, banks, onChange }: {
+function KycProfileStep({ form, errors, banks, subdomain, isReturning, onChange }: {
   form: KycFormData;
   errors: Record<string, string>;
   banks: Array<{ id: number; name: string; code: string }>;
+  subdomain?: string | null;
+  isReturning: boolean;
   onChange: (field: keyof KycFormData, value: string | BusinessType) => void;
 }) {
   return (
@@ -819,7 +911,7 @@ function KycProfileStep({ form, errors, banks, onChange }: {
         <CardContent className="space-y-4">
           <Field label="Bank Name" required error={errors.bank_name}>
             {banks.length > 0 ? (
-              <Select value={form.bank_code} onValueChange={v => {
+              <Select value={form.bank_code} disabled={subdomain?.toLowerCase() === 'page' && isReturning} onValueChange={v => {
                 const bank = banks.find(b => b.code === v);
                 onChange('bank_code', v);
                 if (bank) onChange('bank_name', bank.name);
@@ -828,7 +920,7 @@ function KycProfileStep({ form, errors, banks, onChange }: {
                 <SelectContent>{banks.map(b => <SelectItem key={b.code} value={b.code}>{b.name}</SelectItem>)}</SelectContent>
               </Select>
             ) : (
-              <Input value={form.bank_name} onChange={e => onChange('bank_name', e.target.value)} placeholder="e.g. First Bank" />
+              <Input value={form.bank_name} disabled={subdomain?.toLowerCase() === 'page' && isReturning} onChange={e => onChange('bank_name', e.target.value)} placeholder="e.g. First Bank" />
             )}
           </Field>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -838,11 +930,12 @@ function KycProfileStep({ form, errors, banks, onChange }: {
                 onChange={e => onChange('account_number', e.target.value.replace(/\D/g, '').slice(0, 10))}
                 placeholder="10-digit account number"
                 inputMode="numeric"
+                disabled={subdomain?.toLowerCase() === 'page' && isReturning}
                 maxLength={10}
               />
             </Field>
             <Field label="Account Name" required error={errors.account_name}>
-              <Input value={form.account_name} onChange={e => onChange('account_name', e.target.value)} placeholder="Account holder name" />
+              <Input value={form.account_name} disabled placeholder="Account holder name (auto-filled)" />
             </Field>
           </div>
           <Field label="BVN (Bank Verification Number)" required error={errors.bvn}>
@@ -851,6 +944,7 @@ function KycProfileStep({ form, errors, banks, onChange }: {
               onChange={e => onChange('bvn', e.target.value.replace(/\D/g, '').slice(0, 11))}
               placeholder="11-digit BVN"
               inputMode="numeric"
+              disabled={subdomain?.toLowerCase() === 'page' && isReturning}
               maxLength={11}
             />
           </Field>
@@ -904,12 +998,12 @@ function DocumentsStep({ businessType, requiredDocs, uploadedDocs, onAddDoc, onR
         </CardContent>
       </Card>
 
-      <Alert>
+      {/* <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           <strong>Note:</strong> You can still submit without uploading documents. You'll be able to upload them after registration via your KYC portal link sent to your email.
         </AlertDescription>
-      </Alert>
+      </Alert> */}
     </div>
   );
 }
