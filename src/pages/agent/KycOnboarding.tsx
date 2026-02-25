@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Check, Upload, User, Briefcase, FileText, ArrowRight, ArrowLeft, LogOut, AlertCircle, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { 
-  BusinessType, 
-  KycProfile, 
-  KycStatusResponse, 
+import {
+  BusinessType,
+  KycProfile,
+  KycStatusResponse,
   DocumentType,
   KycDocument,
   RequiredDocument,
@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import kycService from '@/services/api/kyc.service';
+import agentsService from '@/services/api/agents.service';
 
 const STEPS = [
   { id: 1, title: 'Profile', description: 'Complete your profile' },
@@ -48,6 +49,13 @@ export default function KycOnboarding() {
   const [uploadingDoc, setUploadingDoc] = useState<DocumentType | null>(null);
   const [corrections, setCorrections] = useState<KycCorrectionsData | null>(null);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+  const [banks, setBanks] = useState<Array<{ id: number; name: string; code: string }>>([]);
+  const [accountVerifyLoading, setAccountVerifyLoading] = useState(false);
+  const [accountVerified, setAccountVerified] = useState(false);
+
+  const updateField = useCallback((field: keyof KycProfile, value: any) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   // Redirect if not authenticated
   if (!isAuthenticated) {
@@ -60,9 +68,102 @@ export default function KycOnboarding() {
   }
 
   // Load KYC status and data on mount
+  const loadKycData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // Load status
+      const statusResponse = await kycService.getKycStatus();
+      setKycStatus(statusResponse);
+
+      // Load profile if exists
+      const profileResponse = await kycService.getKycProfile();
+      if (profileResponse.data.profile) {
+        setProfile(profileResponse.data.profile);
+      }
+
+      // Load corrections from profile response if any
+      if (profileResponse.data.corrections) {
+        setCorrections(profileResponse.data.corrections);
+      }
+
+      // Load documents if business type is set
+      if (profileResponse.data.profile?.business_type) {
+        const docsResponse = await kycService.getDocuments();
+        setDocuments(docsResponse.data.documents || []);
+        setRequiredDocuments(docsResponse.data.required_documents || []);
+      }
+
+      // Load banks for dropdown
+      try {
+        const banksResp = await agentsService.getBanks();
+        if (banksResp && banksResp.data) setBanks(banksResp.data);
+      } catch {
+        // ignore
+      }
+
+      // Auto-advance to documents if profile is complete
+      if (statusResponse.data.profile_complete && !statusResponse.data.documents_complete) {
+        setCurrentStep(2);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to load KYC data',
+        description: error.response?.data?.message || 'Please try again',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     loadKycData();
-  }, []);
+  }, [loadKycData]);
+
+  // Auto-verify account when account number reaches 10 digits and bank_code is selected
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const acct = profile.account_number || '';
+    const bank = (profile as any).bank_code || '';
+
+    if (acct.length < 10 || !bank) {
+      setAccountVerified(false);
+      setProfileErrors(prev => {
+        const copy = { ...prev };
+        delete copy.account_number;
+        return copy;
+      });
+      return;
+    }
+
+    timer = setTimeout(async () => {
+      setAccountVerifyLoading(true);
+      try {
+        const resp = await agentsService.verifyAccount({ account_number: acct, bank_code: bank });
+        if (resp && resp.data) {
+          updateField('account_name', resp.data.accountName || profile.account_name || '');
+          updateField('bvn', resp.data.bvn || profile.bvn || '');
+          setProfileErrors(prev => {
+            const copy = { ...prev };
+            delete copy.account_number;
+            return copy;
+          });
+          setAccountVerified(true);
+          toast({ title: 'Account verified', description: `Account holder: ${resp.data.accountName}` });
+        } else {
+          setAccountVerified(false);
+          setProfileErrors(prev => ({ ...prev, account_number: resp?.message || 'Could not verify account' }));
+        }
+      } catch (err) {
+        setAccountVerified(false);
+        setProfileErrors(prev => ({ ...prev, account_number: 'Could not verify account' }));
+      } finally {
+        setAccountVerifyLoading(false);
+      }
+    }, 600);
+
+    return () => { if (timer) clearTimeout(timer); };
+  }, [profile.account_number, (profile as any).bank_code, updateField, toast]);
 
   const loadKycData = async () => {
     setIsLoading(true);
@@ -87,6 +188,14 @@ export default function KycOnboarding() {
         const docsResponse = await kycService.getDocuments();
         setDocuments(docsResponse.data.documents || []);
         setRequiredDocuments(docsResponse.data.required_documents || []);
+      }
+
+      // Load banks for dropdown
+      try {
+        const banksResp = await agentsService.getBanks();
+        if (banksResp && banksResp.data) setBanks(banksResp.data);
+      } catch {
+        // ignore
       }
 
       // Auto-advance to documents if profile is complete
@@ -181,8 +290,10 @@ export default function KycOnboarding() {
 
     setIsSubmitting(true);
     try {
-      await kycService.updateKycProfile(profile);
-      
+      const agentId = (user?.currentContext?.entityId as number) || user?.id;
+      const payload = { ...profile, agent_id: agentId };
+      await kycService.updateKycProfile(payload as any);
+
       toast({
         title: 'Profile Saved',
         description: 'Your profile has been saved successfully',
@@ -227,8 +338,10 @@ export default function KycOnboarding() {
 
     setUploadingDoc(documentType);
     try {
-      await kycService.uploadDocument(documentType, file);
-      
+      // include agent_id in upload payload
+      const agentId = (user?.currentContext?.entityId as number) || user?.id;
+      await kycService.uploadDocument(documentType, file, agentId as number | undefined);
+
       toast({
         title: 'Document Uploaded',
         description: 'Your document has been uploaded successfully',
@@ -237,7 +350,7 @@ export default function KycOnboarding() {
       // Reload documents
       const docsResponse = await kycService.getDocuments();
       setDocuments(docsResponse.data.documents || []);
-      
+
       // Reload status to update completion
       const statusResponse = await kycService.getKycStatus();
       setKycStatus(statusResponse);
@@ -255,7 +368,7 @@ export default function KycOnboarding() {
   const handleDeleteDocument = async (docId: number) => {
     try {
       await kycService.deleteDocument(docId);
-      
+
       toast({
         title: 'Document Deleted',
         description: 'The document has been removed',
@@ -264,7 +377,7 @@ export default function KycOnboarding() {
       // Reload documents
       const docsResponse = await kycService.getDocuments();
       setDocuments(docsResponse.data.documents || []);
-      
+
       // Reload status
       const statusResponse = await kycService.getKycStatus();
       setKycStatus(statusResponse);
@@ -289,12 +402,13 @@ export default function KycOnboarding() {
 
     setIsSubmitting(true);
     try {
-      const response = await kycService.submitKyc();
-      
+      const agentId = (user?.currentContext?.entityId as number) || user?.id;
+      const response = await kycService.submitKyc({ agent_id: agentId });
+
       // Update KYC status in auth context
       const newKycStatus = response.data.kyc_status;
       updateKycStatus(newKycStatus, false);
-      
+
       toast({
         title: 'KYC Submitted',
         description: response.message || 'Your application has been submitted for review',
@@ -467,8 +581,8 @@ export default function KycOnboarding() {
                       currentStep > step.id
                         ? 'bg-primary text-primary-foreground'
                         : currentStep === step.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
                     )}
                   >
                     {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
@@ -525,7 +639,7 @@ export default function KycOnboarding() {
             {currentStep === 1 && (
               <ProfileStep
                 profile={profile}
-                setProfile={setProfile}
+                updateField={updateField}
                 errors={profileErrors}
               />
             )}
@@ -571,8 +685,8 @@ export default function KycOnboarding() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmitKyc} 
+            <Button
+              onClick={handleSubmitKyc}
               disabled={!kycStatus?.data.can_submit || isSubmitting}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -588,14 +702,12 @@ export default function KycOnboarding() {
 // Profile Step Component
 interface ProfileStepProps {
   profile: Partial<KycProfile>;
-  setProfile: (profile: Partial<KycProfile>) => void;
+  updateField: (field: keyof KycProfile, value: any) => void;
   errors: Record<string, string>;
 }
 
-function ProfileStep({ profile, setProfile, errors }: ProfileStepProps) {
-  const updateField = (field: keyof KycProfile, value: any) => {
-    setProfile({ ...profile, [field]: value });
-  };
+function ProfileStep({ profile, updateField, errors }: ProfileStepProps) {
+  // updateField provided by parent
 
   return (
     <div className="space-y-6">
@@ -718,15 +830,30 @@ function ProfileStep({ profile, setProfile, errors }: ProfileStepProps) {
       {/* Bank Details */}
       <div className="space-y-4">
         <h4 className="font-medium">Bank Details</h4>
-        
+
         <div className="space-y-2">
           <Label htmlFor="bank_name">Bank Name *</Label>
-          <Input
-            id="bank_name"
-            value={profile.bank_name || ''}
-            onChange={(e) => updateField('bank_name', e.target.value)}
-            placeholder="e.g., First Bank, GTBank"
-          />
+          {banks.length > 0 ? (
+            <Select value={profile.bank_code || ''} onValueChange={(value: any) => {
+              const bank = banks.find(b => b.code === value);
+              updateField('bank_code' as any, value);
+              updateField('bank_name' as any, bank?.name || '');
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select bank" />
+              </SelectTrigger>
+              <SelectContent>
+                {banks.map(b => <SelectItem key={b.code} value={b.code}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="bank_name"
+              value={profile.bank_name || ''}
+              onChange={(e) => updateField('bank_name', e.target.value)}
+              placeholder="e.g., First Bank, GTBank"
+            />
+          )}
           {errors.bank_name && <p className="text-sm text-destructive">{errors.bank_name}</p>}
         </div>
 
@@ -754,8 +881,9 @@ function ProfileStep({ profile, setProfile, errors }: ProfileStepProps) {
             <Input
               id="account_name"
               value={profile.account_name || ''}
-              onChange={(e) => updateField('account_name', e.target.value)}
-              placeholder="Account holder name"
+              onChange={() => { }}
+              placeholder="Account holder name (auto-filled)"
+              disabled
             />
             {errors.account_name && <p className="text-sm text-destructive">{errors.account_name}</p>}
           </div>
@@ -793,9 +921,9 @@ interface DocumentsStepProps {
   onDeleteDocument: (id: number) => void;
 }
 
-function DocumentsStep({ 
-  businessType, 
-  documents, 
+function DocumentsStep({
+  businessType,
+  documents,
   requiredDocuments,
   uploadingDoc,
   onFileUpload,
@@ -863,9 +991,9 @@ interface DocumentUploadCardProps {
   onDelete: (id: number) => void;
 }
 
-function DocumentUploadCard({ 
-  config, 
-  status, 
+function DocumentUploadCard({
+  config,
+  status,
   documentId,
   isUploading,
   onUpload,
@@ -921,7 +1049,7 @@ function DocumentUploadCard({
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {canUpload && (
             <>
@@ -948,7 +1076,7 @@ function DocumentUploadCard({
               </Button>
             </>
           )}
-          
+
           {isUploaded && documentId && status !== 'approved' && (
             <Button
               variant="ghost"
@@ -1056,7 +1184,7 @@ function SubmitStep({ profile, documents, kycStatus }: SubmitStepProps) {
           <AlertDescription>
             <div className="font-medium">Ready to Submit</div>
             <p className="text-sm mt-1">
-              Your KYC application is complete and ready for submission. 
+              Your KYC application is complete and ready for submission.
               Once submitted, our team will review your application within 24-48 hours.
             </p>
           </AlertDescription>

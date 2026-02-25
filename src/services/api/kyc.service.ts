@@ -73,11 +73,13 @@ class KYCService {
    */
   async uploadDocument(
     documentType: DocumentType,
-    file: File
+    file: File,
+    agentId?: number
   ): Promise<UploadDocumentResponse> {
     const formData = new FormData();
     formData.append('document_type', documentType);
     formData.append('file', file);
+    if (agentId) formData.append('agent_id', String(agentId));
 
     return apiService.post<UploadDocumentResponse>('/kyc-onboarding/documents', formData, {
       headers: {
@@ -98,8 +100,8 @@ class KYCService {
    * Submit KYC for review
    * POST /api/agent-hub/kyc-onboarding/submit
    */
-  async submitKyc(): Promise<SubmitKycResponse> {
-    return apiService.post<SubmitKycResponse>('/kyc-onboarding/submit', {});
+  async submitKyc(data?: Record<string, any>): Promise<SubmitKycResponse> {
+    return apiService.post<SubmitKycResponse>('/kyc-onboarding/submit', data || {});
   }
 
   /**
