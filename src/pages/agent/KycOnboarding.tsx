@@ -243,8 +243,7 @@ export default function KycOnboarding() {
 
     setIsSubmitting(true);
     try {
-      const agentId = (user?.currentContext?.entityId as number) || user?.id;
-      const payload = { ...profile, agent_id: agentId };
+      const payload = { ...profile };
       await kycService.updateKycProfile(payload as any);
 
       toast({
@@ -291,9 +290,7 @@ export default function KycOnboarding() {
 
     setUploadingDoc(documentType);
     try {
-      // include agent_id in upload payload
-      const agentId = (user?.currentContext?.entityId as number) || user?.id;
-      await kycService.uploadDocument(documentType, file, agentId as number | undefined);
+      await kycService.uploadDocument(documentType, file);
 
       toast({
         title: 'Document Uploaded',
@@ -355,8 +352,7 @@ export default function KycOnboarding() {
 
     setIsSubmitting(true);
     try {
-      const agentId = (user?.currentContext?.entityId as number) || user?.id;
-      const response = await kycService.submitKyc({ agent_id: agentId });
+      const response = await kycService.submitKyc();
 
       // Update KYC status in auth context
       const newKycStatus = response.data.kyc_status;

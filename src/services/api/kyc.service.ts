@@ -73,13 +73,11 @@ class KYCService {
    */
   async uploadDocument(
     documentType: DocumentType,
-    file: File,
-    agentId?: number
+    file: File
   ): Promise<UploadDocumentResponse> {
     const formData = new FormData();
     formData.append('document_type', documentType);
     formData.append('file', file);
-    if (agentId) formData.append('agent_id', String(agentId));
 
     return apiService.post<UploadDocumentResponse>('/kyc-onboarding/documents', formData, {
       headers: {
