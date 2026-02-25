@@ -593,6 +593,7 @@ export default function KycOnboarding() {
               <ProfileStep
                 profile={profile}
                 updateField={updateField}
+                banks={banks}
                 errors={profileErrors}
               />
             )}
@@ -656,10 +657,11 @@ export default function KycOnboarding() {
 interface ProfileStepProps {
   profile: Partial<KycProfile>;
   updateField: (field: keyof KycProfile, value: any) => void;
+  banks: Array<{ id: number; name: string; code: string }>;
   errors: Record<string, string>;
 }
 
-function ProfileStep({ profile, updateField, errors }: ProfileStepProps) {
+function ProfileStep({ profile, updateField, errors, banks }: ProfileStepProps) {
   // updateField provided by parent
 
   return (
