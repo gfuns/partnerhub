@@ -165,53 +165,6 @@ export default function KycOnboarding() {
     return () => { if (timer) clearTimeout(timer); };
   }, [profile.account_number, (profile as any).bank_code, updateField, toast]);
 
-  const loadKycData = async () => {
-    setIsLoading(true);
-    try {
-      // Load status
-      const statusResponse = await kycService.getKycStatus();
-      setKycStatus(statusResponse);
-
-      // Load profile if exists
-      const profileResponse = await kycService.getKycProfile();
-      if (profileResponse.data.profile) {
-        setProfile(profileResponse.data.profile);
-      }
-
-      // Load corrections from profile response if any
-      if (profileResponse.data.corrections) {
-        setCorrections(profileResponse.data.corrections);
-      }
-
-      // Load documents if business type is set
-      if (profileResponse.data.profile?.business_type) {
-        const docsResponse = await kycService.getDocuments();
-        setDocuments(docsResponse.data.documents || []);
-        setRequiredDocuments(docsResponse.data.required_documents || []);
-      }
-
-      // Load banks for dropdown
-      try {
-        const banksResp = await agentsService.getBanks();
-        if (banksResp && banksResp.data) setBanks(banksResp.data);
-      } catch {
-        // ignore
-      }
-
-      // Auto-advance to documents if profile is complete
-      if (statusResponse.data.profile_complete && !statusResponse.data.documents_complete) {
-        setCurrentStep(2);
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to load KYC data',
-        description: error.response?.data?.message || 'Please try again',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     try {
