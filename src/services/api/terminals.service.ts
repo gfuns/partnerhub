@@ -223,6 +223,14 @@ class TerminalsService {
   }
 
   /**
+   * Get terminal stats (moved endpoint)
+   * GET /api/partner-hub/terminals/stats
+   */
+  async getStats(): Promise<any> {
+    return apiService.get('/terminals/stats');
+  }
+
+  /**
    * List unassigned terminals
    * GET /api/partner-hub/terminals/unassigned
    */

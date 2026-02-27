@@ -51,6 +51,7 @@ export default function TerminalsList() {
   useEffect(() => {
     loadTerminals();
     loadAgents();
+    loadStats();
   }, [currentPage, searchQuery, statusFilter, assignedFilter]);
 
   const loadTerminals = async () => {
@@ -68,7 +69,8 @@ export default function TerminalsList() {
 
       const response = await terminalsService.getTerminals(params);
       setTerminals(response.data);
-      setStats(response.stats || null);
+      // stats are now fetched from a separate endpoint
+      setStats(null);
       setTotalPages(response.meta.last_page);
       setTotalItems(response.meta.total);
     } catch (error: any) {
@@ -79,6 +81,17 @@ export default function TerminalsList() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const response = await terminalsService.getStats();
+      // apiService.get returns response.data, but ensure compatibility
+      const statsData = response?.data ?? response;
+      setStats(statsData || null);
+    } catch (error: any) {
+      console.warn('Failed to load terminal stats', error);
     }
   };
 
@@ -183,8 +196,8 @@ export default function TerminalsList() {
   };
 
   const columns = [
-    { 
-      key: 'terminal_id', 
+    {
+      key: 'terminal_id',
       header: 'Terminal ID',
       render: (item: Terminal) => (
         <span className="font-mono font-medium">{item.terminal_id}</span>
@@ -208,28 +221,28 @@ export default function TerminalsList() {
       key: 'status',
       header: 'Status',
       render: (item: Terminal) => (
-        <StatusBadge 
-          status={item.status === 'active' ? 'active' : item.status === 'revoked' ? 'revoked' : 'suspended'} 
-          size="sm" 
+        <StatusBadge
+          status={item.status === 'active' ? 'active' : item.status === 'revoked' ? 'revoked' : 'suspended'}
+          size="sm"
         />
       ),
     },
-    { 
-      key: 'terminal_balance', 
+    {
+      key: 'terminal_balance',
       header: "Terminal Balance",
       render: (item: Terminal) => (
         <span className="font-medium">{formatCurrency(Number(item.balance ?? 0))}</span>
       ),
     },
-    { 
-      key: 'today_transaction_volume', 
+    {
+      key: 'today_transaction_volume',
       header: "Today's Volume",
       render: (item: Terminal) => (
         <span className="font-medium">{formatCurrency(item.today_transaction_volume)}</span>
       ),
     },
-    { 
-      key: 'today_transaction_count', 
+    {
+      key: 'today_transaction_count',
       header: "Transactions",
       render: (item: Terminal) => (
         <span className="text-muted-foreground">{item.today_transaction_count || 0}</span>
@@ -333,7 +346,7 @@ export default function TerminalsList() {
             className="pl-9"
           />
         </div>
-        
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Status" />
