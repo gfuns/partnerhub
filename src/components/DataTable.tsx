@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface Column<T> {
   key: string;
-  header: string;
+  header: React.ReactNode;
   render?: (item: T) => React.ReactNode;
   className?: string;
 }
@@ -98,13 +98,13 @@ export function DataTable<T>({
                 onClick={() => onRowClick?.(item)}
                 className={onRowClick ? 'cursor-pointer' : ''}
               >
-              {columns.map((column) => (
-                <TableCell key={column.key} className={column.className}>
-                  {column.render
-                    ? column.render(item)
-                    : (item as Record<string, unknown>)[column.key] as React.ReactNode}
-                </TableCell>
-              ))}
+                {columns.map((column) => (
+                  <TableCell key={column.key} className={column.className}>
+                    {column.render
+                      ? column.render(item)
+                      : (item as Record<string, unknown>)[column.key] as React.ReactNode}
+                  </TableCell>
+                ))}
               </TableRow>
             );
           })}

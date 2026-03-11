@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Ban, RefreshCw, FileText, Monitor, CheckCircle, XCircle, Wifi, TrendingUp } from 'lucide-react';
+import { Plus, Search, Eye, Ban, RefreshCw, FileText, Monitor, CheckCircle, XCircle, Wifi, TrendingUp, Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
@@ -12,6 +12,8 @@ import { ActionButton } from '@/components/ActionButton';
 import { TablePagination } from '@/components/TablePagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Select,
   SelectContent,
@@ -31,6 +33,8 @@ interface Agent {
 export default function TerminalsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isPartner = user?.loginType === 'partner';
   const [terminals, setTerminals] = useState<Terminal[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -45,6 +49,10 @@ export default function TerminalsList() {
   const [unassignDialogOpen, setUnassignDialogOpen] = useState(false);
   const [reassignModalOpen, setReassignModalOpen] = useState(false);
   const [selectedTerminal, setSelectedTerminal] = useState<Terminal | null>(null);
+  // Sweep selection state (partner only)
+  const [sweepSelected, setSweepSelected] = useState<Set<number>>(new Set());
+  const [sweepDialogOpen, setSweepDialogOpen] = useState(false);
+  const [isSweeping, setIsSweeping] = useState(false);
 
   const pageSize = 15;
 
@@ -54,9 +62,13 @@ export default function TerminalsList() {
     loadStats();
   }, [currentPage, searchQuery, statusFilter, assignedFilter]);
 
+  // Clear sweep selection whenever the terminal list refreshes
+  const clearSweepSelection = () => setSweepSelected(new Set());
+
   const loadTerminals = async () => {
     try {
       setLoading(true);
+      clearSweepSelection();
       const params: TerminalListParams = {
         page: currentPage,
         per_page: pageSize,
@@ -144,6 +156,50 @@ export default function TerminalsList() {
     }
   };
 
+  const sweepableTerminals = terminals.filter(t => Number(t.balance ?? 0) > 0);
+  const allSweepableSelected =
+    sweepableTerminals.length > 0 &&
+    sweepableTerminals.every(t => sweepSelected.has(t.id));
+
+  const toggleSelectAll = () => {
+    if (allSweepableSelected) {
+      setSweepSelected(new Set());
+    } else {
+      setSweepSelected(new Set(sweepableTerminals.map(t => t.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSweepSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleSweep = async () => {
+    setIsSweeping(true);
+    try {
+      await terminalsService.sweep(Array.from(sweepSelected));
+      toast({
+        title: 'Sweep successful',
+        description: 'Selected terminal funds have been moved to your wallet.',
+      });
+      setSweepDialogOpen(false);
+      setSweepSelected(new Set());
+      loadTerminals();
+      loadStats();
+    } catch (error: any) {
+      toast({
+        title: 'Sweep failed',
+        description: error.message || 'Failed to sweep terminals',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSweeping(false);
+    }
+  };
+
   const handleReassign = async (agentId: string, virtualAccountData?: any) => {
     if (!selectedTerminal) return;
     try {
@@ -195,7 +251,36 @@ export default function TerminalsList() {
     return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
+  const sweepCheckboxColumn = isPartner
+    ? [
+      {
+        key: 'sweep_select',
+        header: (
+          <Checkbox
+            checked={allSweepableSelected}
+            onCheckedChange={toggleSelectAll}
+            disabled={sweepableTerminals.length === 0}
+            aria-label="Select all sweepable terminals"
+          />
+        ),
+        className: 'w-10',
+        render: (item: Terminal) => {
+          const bal = Number(item.balance ?? 0);
+          return (
+            <Checkbox
+              checked={sweepSelected.has(item.id)}
+              onCheckedChange={() => toggleSelectOne(item.id)}
+              disabled={bal === 0}
+              aria-label={`Select terminal ${item.terminal_id}`}
+            />
+          );
+        },
+      },
+    ]
+    : [];
+
   const columns = [
+    ...sweepCheckboxColumn,
     {
       key: 'terminal_id',
       header: 'Terminal ID',
@@ -298,12 +383,24 @@ export default function TerminalsList() {
         title="Terminals"
         description="Manage POS terminals and their assignments."
         actions={
-          <PermissionGate permission="terminals.create">
-            <Button onClick={() => navigate('/terminals/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Issue POS
-            </Button>
-          </PermissionGate>
+          <div className="flex items-center gap-2">
+            {isPartner && (
+              <Button
+                variant="outline"
+                onClick={() => setSweepDialogOpen(true)}
+                disabled={sweepSelected.size === 0}
+              >
+                <Wallet className="mr-2 h-4 w-4" />
+                Sweep{sweepSelected.size > 0 ? ` (${sweepSelected.size})` : ''}
+              </Button>
+            )}
+            <PermissionGate permission="terminals.create">
+              <Button onClick={() => navigate('/terminals/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Issue POS
+              </Button>
+            </PermissionGate>
+          </div>
         }
       />
 
@@ -413,6 +510,16 @@ export default function TerminalsList() {
         agents={agents}
         currentAgentId={selectedTerminal?.agent_id?.toString()}
         onConfirm={handleReassign}
+      />
+
+      <ConfirmDialog
+        open={sweepDialogOpen}
+        onOpenChange={setSweepDialogOpen}
+        title="Sweep Terminal Funds"
+        description={`The entire balance from ${sweepSelected.size} selected terminal${sweepSelected.size !== 1 ? 's' : ''} will be moved to your partner wallet. This action cannot be undone.`}
+        confirmLabel={isSweeping ? 'Sweeping…' : 'Confirm Sweep'}
+        variant="default"
+        onConfirm={handleSweep}
       />
     </div>
   );

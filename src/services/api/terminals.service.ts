@@ -327,6 +327,15 @@ class TerminalsService {
   }
 
   /**
+   * Sweep balances from selected terminals to partner wallet
+   * POST /api/partner-hub/terminals/sweep
+   */
+  async sweep(terminalIds?: number[]): Promise<any> {
+    const payload = terminalIds && terminalIds.length > 0 ? { terminal_ids: terminalIds } : {};
+    return apiService.post('/sweep', payload);
+  }
+
+  /**
    * Add virtual account to terminal
    * POST /api/partner-hub/terminals/{id}/add-virtual-account
    */
