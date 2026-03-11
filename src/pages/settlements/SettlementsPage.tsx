@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Banknote, 
-  Building2, 
-  Plus, 
-  Eye, 
-  Trash2, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Banknote,
+  Building2,
+  Plus,
+  Eye,
+  Trash2,
+  Clock,
+  CheckCircle2,
   XCircle,
   AlertCircle,
   Loader2,
@@ -57,8 +57,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  settlementService, 
+import {
+  settlementService,
   SettlementAccount,
   SettlementRequest,
   SettlementStatus,
@@ -99,7 +99,7 @@ const statusConfig: Record<SettlementStatus, { color: string; icon: any; label: 
 
 export default function SettlementsPage() {
   const { toast } = useToast();
-  
+
   // State
   const [isLoading, setIsLoading] = useState(true);
   const [settlements, setSettlements] = useState<SettlementRequest[]>([]);
@@ -112,16 +112,16 @@ export default function SettlementsPage() {
     unswept_sweepable_amount?: number;
   } | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+
   // Bank accounts state
   const [accounts, setAccounts] = useState<SettlementAccount[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [isLoadingBanks, setIsLoadingBanks] = useState(false);
-  
+
   // Eligibility
   const [eligibility, setEligibility] = useState<SettlementEligibility | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
-  
+
   // Add account modal
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
   const [newAccountBankCode, setNewAccountBankCode] = useState('');
@@ -129,7 +129,7 @@ export default function SettlementsPage() {
   const [newAccountName, setNewAccountName] = useState('');
   const [isResolvingAccount, setIsResolvingAccount] = useState(false);
   const [isSavingAccount, setIsSavingAccount] = useState(false);
-  
+
   // Request settlement modal
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [settlementAmount, setSettlementAmount] = useState('');
@@ -140,12 +140,12 @@ export default function SettlementsPage() {
   // Sweep unswept amounts
   const [isSweepModalOpen, setIsSweepModalOpen] = useState(false);
   const [isSweeping, setIsSweeping] = useState(false);
-  
+
   // Delete account confirmation
   const [accountToDelete, setAccountToDelete] = useState<SettlementAccount | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [settingPrimaryId, setSettingPrimaryId] = useState<number | null>(null);
-  
+
   // Details modal
   const [selectedSettlement, setSelectedSettlement] = useState<SettlementRequest | null>(null);
 
@@ -171,7 +171,7 @@ export default function SettlementsPage() {
         settlementService.checkEligibility(),
         walletService.getWallet()
       ]);
-      
+
       // Normalize settlements response: API may return { data: [...] } or { data: { settlements: [...], stats } }
       const rawSettlements: any = (settlementsRes as any).data;
       const settlementsArray: SettlementRequest[] = Array.isArray(rawSettlements)
@@ -228,7 +228,7 @@ export default function SettlementsPage() {
       // Wallet response may be { data: { wallet: {...} } } or { data: {...} }
       const rawWallet: any = (walletRes as any).data;
       const walletObj: any = rawWallet?.wallet ?? rawWallet ?? null;
-      
+
       setWalletBalance(walletObj?.available_balance ?? walletObj?.availableBalance ?? 0);
     } catch (error: any) {
       toast({
@@ -302,7 +302,7 @@ export default function SettlementsPage() {
   const handleAccountNumberChange = async (value: string) => {
     setNewAccountNumber(value);
     setNewAccountName('');
-    
+
     if (value.length === 10 && newAccountBankCode) {
       setIsResolvingAccount(true);
       try {
@@ -311,7 +311,7 @@ export default function SettlementsPage() {
           account_number: value
         });
         console.log(res);
-        
+
         setNewAccountName(((res.data as any).accountName || (res.data as any).account_name || '').toUpperCase());
       } catch (error: any) {
         toast({
@@ -427,7 +427,7 @@ export default function SettlementsPage() {
 
   const handleRequestSettlement = async () => {
     const amount = parseFloat(settlementAmount);
-    
+
     if (!amount || amount <= 0) {
       toast({
         variant: 'destructive',
@@ -564,12 +564,12 @@ export default function SettlementsPage() {
         if (status === 'approved') {
           status = 'pending_payment';
         }
-        
+
         return (
-          <StatusBadge 
-            status={status as any} 
-            label={status} 
-            size="sm" 
+          <StatusBadge
+            status={status as any}
+            label={status}
+            size="sm"
           />
         );
       }
@@ -624,11 +624,11 @@ export default function SettlementsPage() {
 
   return (
     <div>
-      <PageHeader 
-        title="Settlements" 
+      <PageHeader
+        title="Settlements"
         description="Request settlements from your wallet to your bank account"
         actions={
-          <Button 
+          <Button
             onClick={() => setIsRequestModalOpen(true)}
             disabled={!canRequestSettlement}
           >
@@ -686,31 +686,31 @@ export default function SettlementsPage() {
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Across all merchants</div>
               </div>
-              {(settlementStats?.unswept_sweepable_amount ?? 0) > 0 && (
+              {/* {(settlementStats?.unswept_sweepable_amount ?? 0) > 0 && (
                 <div>
                   <Button onClick={() => setIsSweepModalOpen(true)}>Sweep</Button>
                 </div>
-              )}
+              )} */}
             </div>
           </CardContent>
         </Card>
-        
-        <StatCard 
-          title="Pending Settlements" 
+
+        <StatCard
+          title="Pending Settlements"
           // value={`${settlementStats?.pending_count ?? 0} • ${formatCurrency(settlementStats?.pending_amount ?? 0)}`} 
-          value={`${formatCurrency(settlementStats?.pending_amount ?? 0)}`} 
+          value={`${formatCurrency(settlementStats?.pending_amount ?? 0)}`}
           icon={Clock}
         />
-        
-        <StatCard 
-          title="Paid This Month" 
-          value={formatCurrency(settlementStats?.paid_this_month || 0)} 
+
+        <StatCard
+          title="Paid This Month"
+          value={formatCurrency(settlementStats?.paid_this_month || 0)}
           icon={CheckCircle2}
         />
-        
-        <StatCard 
-          title="Total Paid" 
-          value={formatCurrency(settlementStats?.total_paid || 0)} 
+
+        <StatCard
+          title="Total Paid"
+          value={formatCurrency(settlementStats?.total_paid || 0)}
           icon={Banknote}
         />
       </div>
@@ -739,10 +739,10 @@ export default function SettlementsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <DataTable 
-                columns={settlementColumns} 
-                data={Array.isArray(settlements) ? settlements : []} 
-                emptyMessage="No settlement requests yet" 
+              <DataTable
+                columns={settlementColumns}
+                data={Array.isArray(settlements) ? settlements : []}
+                emptyMessage="No settlement requests yet"
               />
               {settlementsMeta.totalPages > 1 && (
                 <TablePagination
@@ -825,8 +825,8 @@ export default function SettlementsPage() {
                                 )}
                               </Button>
                             )}
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => setAccountToDelete(account)}
                             >
@@ -835,10 +835,10 @@ export default function SettlementsPage() {
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-2">
-                          <StatusBadge 
+                          <StatusBadge
                             status={
-                              ((account as any).status ?? (account as any).verification_status) === 'verified' ? 'success' : 
-                              ((account as any).status ?? (account as any).verification_status) === 'pending' ? 'warning' : 'error'
+                              ((account as any).status ?? (account as any).verification_status) === 'verified' ? 'success' :
+                                ((account as any).status ?? (account as any).verification_status) === 'pending' ? 'warning' : 'error'
                             }
                             label={
                               ((account as any).status ?? (account as any).verification_status)
@@ -902,7 +902,7 @@ export default function SettlementsPage() {
 
             <div>
               <Label>Account Number</Label>
-              <Input 
+              <Input
                 type="text"
                 maxLength={10}
                 placeholder="Enter 10-digit account number"
@@ -914,7 +914,7 @@ export default function SettlementsPage() {
             <div>
               <Label>Account Name</Label>
               <div className="relative">
-                <Input 
+                <Input
                   type="text"
                   placeholder="Account name will be resolved"
                   value={newAccountName}
@@ -932,8 +932,8 @@ export default function SettlementsPage() {
             <Button variant="outline" onClick={() => setIsAddAccountModalOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleAddAccount} 
+            <Button
+              onClick={handleAddAccount}
               disabled={!newAccountBankCode || !newAccountNumber || !newAccountName || isSavingAccount}
             >
               {isSavingAccount ? (
@@ -977,7 +977,7 @@ export default function SettlementsPage() {
               <Label>Amount to Settle</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₦</span>
-                <Input 
+                <Input
                   type="number"
                   min="0"
                   step="100"
@@ -1032,7 +1032,7 @@ export default function SettlementsPage() {
             {/* Notes */}
             <div>
               <Label>Notes (Optional)</Label>
-              <Textarea 
+              <Textarea
                 placeholder="Add any notes for this settlement"
                 value={settlementNotes}
                 onChange={(e) => setSettlementNotes(e.target.value)}
@@ -1104,7 +1104,7 @@ export default function SettlementsPage() {
                 <div>
                   <Label className="text-muted-foreground">Status</Label>
                   <div className="mt-1">
-                    <StatusBadge 
+                    <StatusBadge
                       status={(statusConfig as any)[selectedSettlement.status]?.color ?? 'warning'}
                       label={(statusConfig as any)[selectedSettlement.status]?.label ?? (selectedSettlement.status ?? 'Unknown')}
                     />
@@ -1221,7 +1221,7 @@ export default function SettlementsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteAccount}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
