@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -59,14 +59,21 @@ const agentNavItems: NavItem[] = [
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout, hasPermission, branding, getAssetUrl } = useAuth();
+  const { user, logout, hasPermission, branding, getAssetUrl, logoutRedirectPath } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const redirectTo = logoutRedirectPath;
+    await logout();
+    navigate(redirectTo, { replace: true });
+  };
 
   // Determine if user is an agent based on role
   const isAgent = user?.role?.startsWith('agent');
-  
+
   const navItems = isAgent ? agentNavItems : partnerNavItems;
-  
+
   // If user has no permissions array or empty permissions, show all items
   // Otherwise filter based on permissions
   const filteredNavItems = user?.permissions && user.permissions.length > 0
@@ -99,9 +106,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         style={sidebarStyle}
       >
         {/* Header */}
-        <div 
+        <div
           className="flex h-16 items-center justify-between px-4"
-          style={{ 
+          style={{
             borderBottomColor: branding.sidebar_bg_color,
             borderBottomWidth: '1px',
             backgroundColor: branding.sidebar_logo_bg_color || branding.sidebar_bg_color
@@ -109,8 +116,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         >
           {logoUrl ? (
             <img
-              src={logoUrl} 
-              alt="Logo" 
+              src={logoUrl}
+              alt="Logo"
               className="h-10 max-w-[180px] object-contain"
             />
           ) : (
@@ -162,15 +169,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div 
+        <div
           className="p-4"
-          style={{ 
+          style={{
             borderTopColor: branding.sidebar_bg_color,
             borderTopWidth: '1px'
           }}
         >
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
             style={{ color: branding.sidebar_text_color }}
             onMouseEnter={(e) => {

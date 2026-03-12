@@ -10,8 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useBranding } from '@/contexts/BrandingContext';
 import { brandingService } from '@/services/api/branding.service';
 
-type AccountType = 'partner' | 'agent';
-
 export default function Login() {
   const navigate = useNavigate();
   const { authenticate, isAuthenticated, isLoading, authState } = useAuth();
@@ -52,7 +50,6 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [accountType, setAccountType] = useState<AccountType>('partner');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,8 +62,9 @@ export default function Login() {
     setIsSubmitting(true);
 
     try {
-      const result = await authenticate(email, password, accountType);
-      
+      // Merchant/agent login always uses 'agent' account type (agent-hub)
+      const result = await authenticate(email, password, 'agent');
+
       if (result.requiresPasswordChange) {
         // User must change password first
         toast({
@@ -78,17 +76,12 @@ export default function Login() {
         // User has multiple contexts to choose from
         navigate('/choose-account');
       } else if (result.requiresKycOnboarding) {
-        // User must complete KYC onboarding
+        // Agent/merchant must complete KYC onboarding
         toast({
           title: 'KYC Onboarding Required',
           description: 'Please complete your KYC verification to continue.',
         });
-        // Navigate based on login type
-        if (accountType === 'partner') {
-          navigate('/partner-kyc-onboarding');
-        } else {
-          navigate('/kyc-onboarding');
-        }
+        navigate('/kyc-onboarding');
       } else {
         // User is fully authenticated
         toast({
@@ -99,14 +92,14 @@ export default function Login() {
       }
     } catch (error: any) {
       console.log(error);
-      
+
       // Handle validation errors (422 with errors object)
       if (error.errors && Object.keys(error.errors).length > 0) {
         // Get the first validation error
         const firstErrorKey = Object.keys(error.errors)[0];
         const firstErrorMessages = error.errors[firstErrorKey];
         const firstError = Array.isArray(firstErrorMessages) ? firstErrorMessages[0] : firstErrorMessages;
-        
+
         toast({
           variant: 'destructive',
           title: 'Validation Error',
@@ -147,10 +140,10 @@ export default function Login() {
             )}
           </div>
           <h1 className="text-3xl font-semibold mb-4" style={{ color: activeBranding.sidebar_text_color || undefined }}>
-            {remotePartner?.name || activeBranding.partner_name || 'Partner POS Platform'}
+            {remotePartner?.name || activeBranding.partner_name || 'Merchant Portal'}
           </h1>
           <p className="text-lg" style={{ color: activeBranding.sidebar_text_color || undefined }}>
-            Manage terminals, track transactions, and grow your business with our enterprise-grade payment platform.
+            Access your merchant dashboard, track your transactions, and manage your terminals.
           </p>
         </div>
       </div>
@@ -167,42 +160,13 @@ export default function Login() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold" style={{ color: activeBranding.text_primary_color || undefined }}>Sign in</h2>
+            <h2 className="text-2xl font-semibold" style={{ color: activeBranding.text_primary_color || undefined }}>Merchant Sign in</h2>
             <p className="mt-2 text-sm" style={{ color: activeBranding.text_secondary_color || undefined }}>
-              {activeBranding.login_welcome_message || 'Enter your credentials to access your account'}
+              {activeBranding.login_welcome_message || 'Enter your credentials to access your merchant account'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Account Type Selector */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Account Type</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setAccountType('partner')}
-                  className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
-                    accountType === 'partner'
-                      ? 'border-brand bg-brand/5 text-brand'
-                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
-                  }`}
-                >
-                  Partner Admin / Staff
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAccountType('agent')}
-                  className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
-                    accountType === 'agent'
-                      ? 'border-brand bg-brand/5 text-brand'
-                      : 'border-border bg-background text-muted-foreground hover:bg-secondary'
-                  }`}
-                >
-                  Merchant (Terminal Owner)
-                </button>
-              </div>
-            </div>
-
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -268,6 +232,19 @@ export default function Login() {
             >
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </Button>
+
+            {/* Sign Up link */}
+            <p className="text-center text-sm" style={{ color: activeBranding.text_secondary_color || undefined }}>
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/sign-up')}
+                className="font-medium hover:underline"
+                style={{ color: activeBranding.btn_primary_bg_color || undefined }}
+              >
+                Sign up here
+              </button>
+            </p>
           </form>
         </div>
       </div>

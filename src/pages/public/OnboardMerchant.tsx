@@ -339,6 +339,12 @@ export default function OnboardMerchant() {
   };
 
   const handleBack = () => {
+    if (currentStep === 1) {
+      // Go back to the New / Existing merchant choice screen
+      setIsReturning(null);
+      window.scrollTo(0, 0);
+      return;
+    }
     setCurrentStep(s => s - 1);
     window.scrollTo(0, 0);
   };

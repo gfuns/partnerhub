@@ -265,7 +265,7 @@ export default function TerminalsList() {
         ),
         className: 'w-10',
         render: (item: Terminal) => {
-          const bal = Number(item.balance ?? 0);
+          const bal = Number(item.unswept_balance ?? 0);
           return (
             <Checkbox
               checked={sweepSelected.has(item.id)}
@@ -317,6 +317,13 @@ export default function TerminalsList() {
       header: "Terminal Balance",
       render: (item: Terminal) => (
         <span className="font-medium">{formatCurrency(Number(item.balance ?? 0))}</span>
+      ),
+    },
+    {
+      key: 'unswept_balance',
+      header: "Unswept Balance",
+      render: (item: Terminal) => (
+        <span className="font-medium">{formatCurrency(Number(item.unswept_balance ?? 0))}</span>
       ),
     },
     {
@@ -516,7 +523,7 @@ export default function TerminalsList() {
         open={sweepDialogOpen}
         onOpenChange={setSweepDialogOpen}
         title="Sweep Terminal Funds"
-        description={`The entire balance from ${sweepSelected.size} selected terminal${sweepSelected.size !== 1 ? 's' : ''} will be moved to your partner wallet. This action cannot be undone.`}
+        description={`The entire sweepable balance (transactions from cards) from ${sweepSelected.size} selected terminal${sweepSelected.size !== 1 ? 's' : ''} will be moved to your partner wallet. This action cannot be undone.`}
         confirmLabel={isSweeping ? 'Sweeping…' : 'Confirm Sweep'}
         variant="default"
         onConfirm={handleSweep}

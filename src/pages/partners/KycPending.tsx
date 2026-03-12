@@ -9,12 +9,17 @@ import { cn } from '@/lib/utils';
 export default function PartnerKycPending() {
   const { logout, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/partner', { replace: true });
+  };
+
   const status = user?.kycStatus || 'pending_review';
 
   // Redirect if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/partner" replace />;
   }
 
   // Redirect approved partners to dashboard
@@ -63,7 +68,7 @@ export default function PartnerKycPending() {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Logo size="md" />
-          <Button variant="ghost" size="sm" onClick={logout}>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Button>
@@ -109,14 +114,14 @@ export default function PartnerKycPending() {
 
             {status === 'rejected' && (
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={() => navigate('/partner-kyc-onboarding')}
                   className="w-full"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Resubmit Application
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   className="w-full"
                   onClick={() => {
@@ -129,7 +134,7 @@ export default function PartnerKycPending() {
             )}
 
             {status === 'suspended' && (
-              <Button 
+              <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { 
-  Check, Upload, Building2, FileText, ArrowRight, ArrowLeft, 
+import {
+  Check, Upload, Building2, FileText, ArrowRight, ArrowLeft,
   LogOut, AlertCircle, Loader2, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,11 +37,11 @@ export default function PartnerKycOnboarding() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<KycStatusResponse | null>(null);
-  
+
   // Step 1: Categories
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  
+
   // Step 2: Profile
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [profileData, setProfileData] = useState<Record<string, any>>({});
@@ -83,10 +83,10 @@ export default function PartnerKycOnboarding() {
         if (profileResponse.data.business_category) {
           setSelectedCategory(profileResponse.data.business_category);
           setProfileData(profileResponse.data.data || {});
-          
+
           // Load requirements for saved category
           await loadCategoryRequirements(profileResponse.data.business_category);
-          
+
           // Auto-advance to review step if profile exists
           if (Object.keys(profileResponse.data.data || {}).length > 0) {
             setCurrentStep(3); // Review step
@@ -125,7 +125,7 @@ export default function PartnerKycOnboarding() {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      navigate('/partner');
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -218,7 +218,7 @@ export default function PartnerKycOnboarding() {
     try {
       // First, upload any file fields
       const dataToSubmit = { ...profileData };
-      
+
       for (const field of formFields) {
         if (field.field_type === 'file' && profileData[field.label] instanceof File) {
           try {
@@ -248,10 +248,10 @@ export default function PartnerKycOnboarding() {
 
       // Submit for review
       await partnerKycService.submitProfile();
-      
+
       // Update the user's KYC status in context
       updateKycStatus('pending_review', false);
-      
+
       toast({
         title: 'KYC submitted',
         description: 'Your KYC application has been submitted for review',
@@ -461,8 +461,8 @@ export default function PartnerKycOnboarding() {
                       currentStep > step.id
                         ? 'border-brand bg-brand text-white'
                         : currentStep === step.id
-                        ? 'border-brand bg-white text-brand'
-                        : 'border-gray-300 bg-white text-gray-400'
+                          ? 'border-brand bg-white text-brand'
+                          : 'border-gray-300 bg-white text-gray-400'
                     )}
                   >
                     {currentStep > step.id ? (

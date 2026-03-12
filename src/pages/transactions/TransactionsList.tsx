@@ -139,6 +139,15 @@ export default function TransactionsList() {
       ),
     },
     {
+      key: 'narration',
+      header: 'Narration',
+      render: (item: Transaction) => (
+        <div className="flex flex-col">
+          <span className="font-mono text-xs">{item.narration}</span>
+        </div>
+      ),
+    },
+    {
       key: 'type_name',
       header: 'Type',
       render: (item: Transaction) => (

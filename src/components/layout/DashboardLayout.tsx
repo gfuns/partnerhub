@@ -6,15 +6,15 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading, user, authState, branding } = useAuth();
+  const { isAuthenticated, isLoading, user, authState, branding, logoutRedirectPath } = useAuth();
 
   if (isLoading) {
     return (
-      <div 
+      <div
         className="flex h-screen items-center justify-center"
         style={{ backgroundColor: branding.body_bg_color }}
       >
-        <div 
+        <div
           className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
           style={{ borderColor: branding.primary_color, borderTopColor: 'transparent' }}
         />
@@ -23,7 +23,7 @@ export function DashboardLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={logoutRedirectPath} replace />;
   }
 
   // Determine if user is a partner or agent
@@ -78,7 +78,7 @@ export function DashboardLayout() {
   }
 
   return (
-    <div 
+    <div
       className="flex h-screen w-full"
       style={{ backgroundColor: branding.body_bg_color }}
     >

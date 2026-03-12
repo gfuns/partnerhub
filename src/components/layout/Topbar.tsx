@@ -1,4 +1,5 @@
 import { Bell, Search, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +18,14 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { user, logout, branding, getAssetUrl } = useAuth();
+  const { user, logout, branding, getAssetUrl, logoutRedirectPath } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const redirectTo = logoutRedirectPath;
+    await logout();
+    navigate(redirectTo, { replace: true });
+  };
 
   const initials = user?.firstName && user?.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
@@ -26,7 +34,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const avatarUrl = getAssetUrl(user?.avatarUrl);
 
   return (
-    <header 
+    <header
       className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b px-4 lg:px-6"
       style={{
         backgroundColor: branding.header_bg_color,
@@ -53,7 +61,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               type="search"
               placeholder="Search..."
               className="w-full max-w-sm pl-8 border-0"
-              style={{ 
+              style={{
                 backgroundColor: branding.body_bg_color,
                 color: branding.text_primary_color,
               }}
@@ -77,9 +85,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.firstName || 'User'} />}
-                <AvatarFallback 
+                <AvatarFallback
                   className="text-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: branding.primary_color,
                     color: branding.btn_primary_text_color,
                   }}
@@ -97,8 +105,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={logout} 
+            <DropdownMenuItem
+              onClick={handleLogout}
               className="cursor-pointer"
               style={{ color: branding.danger_color }}
             >

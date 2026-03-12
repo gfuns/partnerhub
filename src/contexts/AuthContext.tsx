@@ -128,9 +128,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   pendingContexts: AccountContext[] | null;
-  authenticate: (email: string, password: string, loginType?: 'partner' | 'agent') => Promise<{ 
-    success: boolean; 
-    requiresPasswordChange: boolean; 
+  authenticate: (email: string, password: string, loginType?: 'partner' | 'agent') => Promise<{
+    success: boolean;
+    requiresPasswordChange: boolean;
     requiresContextSelection: boolean;
     requiresKycOnboarding: boolean;
     contexts?: AccountContext[];
@@ -138,6 +138,7 @@ interface AuthContextType {
   selectContext: (contextId: number) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string, confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
+  logoutRedirectPath: string;
   hasPermission: (permission: string) => boolean;
   updateKycStatus: (newStatus: string, requiresOnboarding: boolean) => void;
   getAssetUrl: (path: string | null | undefined) => string | null;
@@ -159,14 +160,14 @@ const DEFAULT_PARTNER: Partner = {
  */
 function applyBrandingToDocument(branding: BrandingSettings) {
   const root = document.documentElement;
-  
+
   // Primary colors
   root.style.setProperty('--brand-primary', branding.primary_color);
   root.style.setProperty('--brand-primary-dark', branding.primary_dark_color);
   root.style.setProperty('--brand-primary-light', branding.primary_light_color);
   root.style.setProperty('--brand-secondary', branding.secondary_color);
   root.style.setProperty('--brand-accent', branding.accent_color);
-  
+
   // Sidebar colors
   root.style.setProperty('--brand-sidebar-bg', branding.sidebar_bg_color);
   root.style.setProperty('--brand-sidebar-text', branding.sidebar_text_color);
@@ -176,65 +177,65 @@ function applyBrandingToDocument(branding: BrandingSettings) {
   if (branding.sidebar_logo_bg_color) {
     root.style.setProperty('--brand-sidebar-logo-bg', branding.sidebar_logo_bg_color);
   }
-  
+
   // Header colors
   root.style.setProperty('--brand-header-bg', branding.header_bg_color);
   root.style.setProperty('--brand-header-text', branding.header_text_color);
-  
+
   // Button colors
   root.style.setProperty('--brand-btn-primary-bg', branding.btn_primary_bg_color);
   root.style.setProperty('--brand-btn-primary-text', branding.btn_primary_text_color);
   root.style.setProperty('--brand-btn-primary-hover', branding.btn_primary_hover_bg_color);
   root.style.setProperty('--brand-btn-secondary-bg', branding.btn_secondary_bg_color);
   root.style.setProperty('--brand-btn-secondary-text', branding.btn_secondary_text_color);
-  
+
   // Card colors
   root.style.setProperty('--brand-card-bg', branding.card_bg_color);
   root.style.setProperty('--brand-card-border', branding.card_border_color);
-  
+
   // Body colors
   root.style.setProperty('--brand-body-bg', branding.body_bg_color);
-  
+
   // Text colors
   root.style.setProperty('--brand-text-primary', branding.text_primary_color);
   root.style.setProperty('--brand-text-secondary', branding.text_secondary_color);
   root.style.setProperty('--brand-text-muted', branding.text_muted_color);
-  
+
   // Link colors
   root.style.setProperty('--brand-link', branding.link_color);
   root.style.setProperty('--brand-link-hover', branding.link_hover_color);
-  
+
   // Status colors
   root.style.setProperty('--brand-success', branding.success_color);
   root.style.setProperty('--brand-warning', branding.warning_color);
   root.style.setProperty('--brand-danger', branding.danger_color);
   root.style.setProperty('--brand-info', branding.info_color);
-  
+
   // Border and styling
   root.style.setProperty('--brand-border', branding.border_color);
   root.style.setProperty('--brand-border-radius', branding.border_radius);
   root.style.setProperty('--brand-box-shadow', branding.box_shadow);
-  
+
   // Typography
   root.style.setProperty('--brand-font-family', branding.font_family);
   root.style.setProperty('--brand-font-size', branding.font_size_base);
   if (branding.heading_font_family) {
     root.style.setProperty('--brand-heading-font', branding.heading_font_family);
   }
-  
+
   // Login colors
   root.style.setProperty('--brand-login-bg', branding.login_bg_color);
   root.style.setProperty('--brand-login-card-bg', branding.login_card_bg_color);
-  
+
   // Footer colors
   root.style.setProperty('--brand-footer-bg', branding.footer_bg_color);
   root.style.setProperty('--brand-footer-text', branding.footer_text_color);
-  
+
   // Dark mode colors
   root.style.setProperty('--brand-dark-bg', branding.dark_mode_bg_color);
   root.style.setProperty('--brand-dark-card-bg', branding.dark_mode_card_bg_color);
   root.style.setProperty('--brand-dark-text', branding.dark_mode_text_color);
-  
+
   // Apply custom CSS if provided
   let customStyleEl = document.getElementById('partner-custom-css');
   if (branding.custom_css) {
@@ -247,7 +248,7 @@ function applyBrandingToDocument(branding: BrandingSettings) {
   } else if (customStyleEl) {
     customStyleEl.remove();
   }
-  
+
   // Update favicon if provided
   if (branding.favicon_url) {
     const faviconUrl = getAssetUrl(branding.favicon_url);
@@ -281,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedAuthState = localStorage.getItem('xtrapay_auth_state');
     const storedPartnerData = localStorage.getItem('xtrapay_partner_data');
     const storedBranding = localStorage.getItem('xtrapay_branding');
-    
+
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -319,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data) {
       setPartnerData(data);
       localStorage.setItem('xtrapay_partner_data', JSON.stringify(data));
-      
+
       if (data.branding) {
         const newBranding = { ...DEFAULT_BRANDING, ...data.branding };
         setBranding(newBranding);
@@ -337,7 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isPartner = apiContext.partner !== null;
     const partner = apiContext.partner;
     const agent = apiContext.agent;
-    
+
     return {
       id: apiContext.id,
       type: isPartner ? 'partner' : 'agent',
@@ -359,10 +360,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const authenticate = useCallback(async (email: string, password: string, loginType: 'partner' | 'agent' = 'partner') => {
     setIsLoading(true);
-    
+
     try {
-      const response = await authService.login({ email, password }, loginType);      
-      
+      const response = await authService.login({ email, password }, loginType);
+
+      // Persist login type so post-logout redirects work even after user is cleared
+      localStorage.setItem('xtrapay_login_type', response.data.login_type || loginType);
+
       const { user: apiUser, contexts, selected_context, requires_password_change, requires_context_selection, requires_kyc_onboarding, token, partner_data } = response.data;
 
       // Store partner_data and apply branding if available
@@ -375,10 +379,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (requires_password_change) {
         // Build full user data even for password change flow
         let fullUser: User;
-        
+
         if (selected_context) {
           const accountContext = convertApiContext(selected_context);
-          
+
           // Determine partner info
           let partnerInfo: Partner | undefined;
           if (selected_context.partner) {
@@ -389,7 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               code: selected_context.partner.code,
             };
           }
-          
+
           // Get KYC status
           let kycStatus: string | undefined;
           if (response.data.login_type === 'agent') {
@@ -397,7 +401,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else if (response.data.login_type === 'partner') {
             kycStatus = response.data.kyc_status || selected_context.partner?.kyc_status;
           }
-          
+
           fullUser = {
             id: apiUser.id,
             email: apiUser.email,
@@ -430,21 +434,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             requiresKycOnboarding: requires_kyc_onboarding,
           };
         }
-        
+
         setUser(fullUser);
         setAuthState({
           requiresPasswordChange: true,
           requiresContextSelection: false,
           requiresKycOnboarding: requires_kyc_onboarding || false,
         });
-        
+
         localStorage.setItem('xtrapay_user', JSON.stringify(fullUser));
         localStorage.setItem('xtrapay_auth_state', JSON.stringify({
           requiresPasswordChange: true,
           requiresContextSelection: false,
           requiresKycOnboarding: requires_kyc_onboarding || false,
         }));
-        
+
         setIsLoading(false);
         return {
           success: true,
@@ -457,7 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check if context selection is required (multiple contexts)
       if (requires_context_selection && !selected_context) {
         const accountContexts = contexts.map(convertApiContext);
-        
+
         const tempUser: User = {
           id: apiUser.id,
           email: apiUser.email,
@@ -470,7 +474,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           mustChangePassword: false,
           loginType: response.data.login_type,
         };
-        
+
         setUser(tempUser);
         setPendingContexts(accountContexts);
         setAuthState({
@@ -478,14 +482,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           requiresContextSelection: true,
           requiresKycOnboarding: false,
         });
-        
+
         localStorage.setItem('xtrapay_user', JSON.stringify(tempUser));
         localStorage.setItem('xtrapay_auth_state', JSON.stringify({
           requiresPasswordChange: false,
           requiresContextSelection: true,
           requiresKycOnboarding: false,
         }));
-        
+
         setIsLoading(false);
         return {
           success: true,
@@ -499,7 +503,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If context is already selected (single context or auto-selected), use it
       if (selected_context) {
         const accountContext = convertApiContext(selected_context);
-        
+
         // Determine partner info
         let partnerInfo: Partner | undefined;
         if (selected_context.partner) {
@@ -510,7 +514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             code: selected_context.partner.code,
           };
         }
-        
+
         // Get KYC status: for agents from agent object, for partners from partner object or root level
         let kycStatus: string | undefined;
         if (response.data.login_type === 'agent') {
@@ -519,7 +523,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // For partners, use root level kyc_status or partner's kyc_status
           kycStatus = response.data.kyc_status || selected_context.partner?.kyc_status;
         }
-        
+
         const newUser: User = {
           id: apiUser.id,
           email: apiUser.email,
@@ -536,21 +540,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           requiresKycOnboarding: requires_kyc_onboarding,
           kycStatus: kycStatus,
         };
-        
+
         setUser(newUser);
         setAuthState({
           requiresPasswordChange: false,
           requiresContextSelection: false,
           requiresKycOnboarding: requires_kyc_onboarding || false,
         });
-        
+
         localStorage.setItem('xtrapay_user', JSON.stringify(newUser));
         localStorage.setItem('xtrapay_auth_state', JSON.stringify({
           requiresPasswordChange: false,
           requiresContextSelection: false,
           requiresKycOnboarding: requires_kyc_onboarding || false,
         }));
-        
+
         setIsLoading(false);
         return {
           success: true,
@@ -597,7 +601,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get KYC status based on login type
       let kycStatus: string | undefined;
       const requires_kyc_onboarding = response.data.requires_kyc_onboarding || false;
-      
+
       if (user.loginType === 'agent') {
         kycStatus = apiContext.agent?.kyc_status;
       } else if (user.loginType === 'partner') {
@@ -622,7 +626,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requiresContextSelection: false,
         requiresKycOnboarding: requires_kyc_onboarding,
       });
-      
+
       localStorage.setItem('xtrapay_user', JSON.stringify(updatedUser));
       localStorage.setItem('xtrapay_auth_state', JSON.stringify({
         requiresPasswordChange: false,
@@ -661,7 +665,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...authState,
         requiresPasswordChange: false,
       });
-      
+
       localStorage.setItem('xtrapay_user', JSON.stringify(updatedUser));
       localStorage.setItem('xtrapay_auth_state', JSON.stringify({
         ...authState,
@@ -697,7 +701,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('xtrapay_auth_state');
       localStorage.removeItem('xtrapay_partner_data');
       localStorage.removeItem('xtrapay_branding');
-      
+
       // Reset branding to defaults
       applyBrandingToDocument(DEFAULT_BRANDING);
     }
@@ -750,6 +754,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         selectContext,
         changePassword,
         logout,
+        logoutRedirectPath: user?.loginType === 'partner'
+          ? '/partner'
+          : (typeof window !== 'undefined' && localStorage.getItem('xtrapay_login_type') === 'partner' ? '/partner' : '/login'),
         hasPermission,
         updateKycStatus,
         getAssetUrl,
@@ -776,9 +783,10 @@ export function useAuth() {
       authenticate: async () => { throw new Error('No AuthProvider available'); },
       selectContext: async () => { throw new Error('No AuthProvider available'); },
       changePassword: async () => { throw new Error('No AuthProvider available'); },
-      logout: async () => {},
+      logout: async () => { },
+      logoutRedirectPath: '/login',
       hasPermission: () => false,
-      updateKycStatus: () => {},
+      updateKycStatus: () => { },
       getAssetUrl: getAssetUrl,
     };
     return fallback;
