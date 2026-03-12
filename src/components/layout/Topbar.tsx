@@ -1,4 +1,5 @@
 import { Bell, Search, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +18,14 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick }: TopbarProps) {
-  const { user, logout, branding, getAssetUrl } = useAuth();
+  const { user, logout, branding, getAssetUrl, logoutRedirectPath } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const redirectTo = logoutRedirectPath;
+    await logout();
+    navigate(redirectTo, { replace: true });
+  };
 
   const initials = user?.firstName && user?.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
@@ -98,7 +106,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={logout} 
+              onClick={handleLogout} 
               className="cursor-pointer"
               style={{ color: branding.danger_color }}
             >

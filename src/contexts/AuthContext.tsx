@@ -138,6 +138,7 @@ interface AuthContextType {
   selectContext: (contextId: number) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string, confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
+  logoutRedirectPath: string;
   hasPermission: (permission: string) => boolean;
   updateKycStatus: (newStatus: string, requiresOnboarding: boolean) => void;
   getAssetUrl: (path: string | null | undefined) => string | null;
@@ -362,7 +363,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const response = await authService.login({ email, password }, loginType);      
-      
+
+      // Persist login type so post-logout redirects work even after user is cleared
+      localStorage.setItem('xtrapay_login_type', response.data.login_type || loginType);
+
       const { user: apiUser, contexts, selected_context, requires_password_change, requires_context_selection, requires_kyc_onboarding, token, partner_data } = response.data;
 
       // Store partner_data and apply branding if available
@@ -750,6 +754,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         selectContext,
         changePassword,
         logout,
+        logoutRedirectPath: user?.loginType === 'partner'
+          ? '/partner'
+          : (typeof window !== 'undefined' && localStorage.getItem('xtrapay_login_type') === 'partner' ? '/partner' : '/login'),
         hasPermission,
         updateKycStatus,
         getAssetUrl,
@@ -777,6 +784,7 @@ export function useAuth() {
       selectContext: async () => { throw new Error('No AuthProvider available'); },
       changePassword: async () => { throw new Error('No AuthProvider available'); },
       logout: async () => {},
+      logoutRedirectPath: '/login',
       hasPermission: () => false,
       updateKycStatus: () => {},
       getAssetUrl: getAssetUrl,

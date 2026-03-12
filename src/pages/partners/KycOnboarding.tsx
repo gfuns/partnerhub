@@ -125,7 +125,7 @@ export default function PartnerKycOnboarding() {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      navigate('/partner');
     } catch (error) {
       toast({
         variant: 'destructive',

@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -59,8 +59,15 @@ const agentNavItems: NavItem[] = [
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { user, logout, hasPermission, branding, getAssetUrl } = useAuth();
+  const { user, logout, hasPermission, branding, getAssetUrl, logoutRedirectPath } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const redirectTo = logoutRedirectPath;
+    await logout();
+    navigate(redirectTo, { replace: true });
+  };
 
   // Determine if user is an agent based on role
   const isAgent = user?.role?.startsWith('agent');
@@ -170,7 +177,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           }}
         >
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
             style={{ color: branding.sidebar_text_color }}
             onMouseEnter={(e) => {

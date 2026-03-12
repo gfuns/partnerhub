@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isLoading, user, authState, branding } = useAuth();
+  const { isAuthenticated, isLoading, user, authState, branding, logoutRedirectPath } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,7 +23,7 @@ export function DashboardLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={logoutRedirectPath} replace />;
   }
 
   // Determine if user is a partner or agent

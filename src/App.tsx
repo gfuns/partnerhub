@@ -79,6 +79,7 @@ import TicketDetail from "./pages/support/TicketDetail";
 import NotFound from "./pages/NotFound";
 // Public pages
 import OnboardMerchant from "./pages/public/OnboardMerchant";
+import PartnerLogin from "./pages/PartnerLogin";
 
 const queryClient = new QueryClient();
 
@@ -158,7 +159,11 @@ const App = () => (
                 <Route path="/support/:id" element={<TicketDetail />} />
               </Route>
 
+              {/* /sign-up is the primary public URL; /onboard-merchant kept for backward compat */}
+              <Route path="/sign-up" element={<OnboardMerchant />} />
               <Route path="/onboard-merchant" element={<OnboardMerchant />} />
+              {/* Partner-specific login */}
+              <Route path="/partner" element={<PartnerLogin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

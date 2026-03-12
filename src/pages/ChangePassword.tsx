@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
-  const { user, authState, changePassword, logout, isLoading } = useAuth();
+  const { user, authState, changePassword, logout, isLoading, logoutRedirectPath } = useAuth();
   const { toast } = useToast();
   const { setBranding, getAssetUrl, branding: ctxBranding } = useBranding();
 
@@ -60,14 +60,15 @@ export default function ChangePassword() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
-      navigate('/login');
+      navigate(logoutRedirectPath);
     }
-  }, [user, navigate]);
+  }, [user, navigate, logoutRedirectPath]);
 
   const handleLogout = async () => {
     try {
+      const redirectTo = logoutRedirectPath;
       await logout();
-      navigate('/login');
+      navigate(redirectTo);
     } catch (error) {
       toast({
         variant: 'destructive',
