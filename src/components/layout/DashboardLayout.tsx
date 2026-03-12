@@ -10,11 +10,11 @@ export function DashboardLayout() {
 
   if (isLoading) {
     return (
-      <div 
+      <div
         className="flex h-screen items-center justify-center"
         style={{ backgroundColor: branding.body_bg_color }}
       >
-        <div 
+        <div
           className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
           style={{ borderColor: branding.primary_color, borderTopColor: 'transparent' }}
         />
@@ -78,7 +78,7 @@ export function DashboardLayout() {
   }
 
   return (
-    <div 
+    <div
       className="flex h-screen w-full"
       style={{ backgroundColor: branding.body_bg_color }}
     >

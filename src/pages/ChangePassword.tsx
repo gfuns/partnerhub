@@ -128,7 +128,7 @@ export default function ChangePassword() {
       if (user?.loginType === 'agent') {
         // Agent users - check KYC status
         const kycStatus = user?.kycStatus;
-        
+
         if (kycStatus === 'pending_onboarding' || !kycStatus || user?.requiresKycOnboarding) {
           navigate('/kyc-onboarding');
         } else if (kycStatus === 'pending_review' || kycStatus === 'pending_correction') {
@@ -142,7 +142,7 @@ export default function ChangePassword() {
       } else if (user?.loginType === 'partner') {
         // Partner users - check KYC status
         const kycStatus = user?.kycStatus;
-        
+
         if (kycStatus === 'pending_onboarding' || user?.requiresKycOnboarding || authState.requiresKycOnboarding) {
           navigate('/partner-kyc-onboarding');
         } else if (kycStatus === 'pending_review' || kycStatus === 'pending_correction') {
@@ -224,175 +224,175 @@ export default function ChangePassword() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">{/* Current Password */}
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <Input
-                  id="currentPassword"
-                  type={showPasswords.current ? 'text' : 'password'}
-                  placeholder="Enter your current password"
-                  value={formData.currentPassword}
-                  onChange={(e) => {
-                    setFormData({ ...formData, currentPassword: e.target.value });
-                    setErrors({ ...errors, currentPassword: '' });
-                  }}
-                  className="pl-10 pr-10"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('current')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPasswords.current ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Input
+                      id="currentPassword"
+                      type={showPasswords.current ? 'text' : 'password'}
+                      placeholder="Enter your current password"
+                      value={formData.currentPassword}
+                      onChange={(e) => {
+                        setFormData({ ...formData, currentPassword: e.target.value });
+                        setErrors({ ...errors, currentPassword: '' });
+                      }}
+                      className="pl-10 pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('current')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.current ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.currentPassword && (
+                    <p className="text-sm text-destructive">{errors.currentPassword}</p>
                   )}
-                </button>
-              </div>
-              {errors.currentPassword && (
-                <p className="text-sm text-destructive">{errors.currentPassword}</p>
-              )}
-            </div>
-
-            {/* New Password */}
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <Input
-                  id="newPassword"
-                  type={showPasswords.new ? 'text' : 'password'}
-                  placeholder="Enter new password (min 8 characters)"
-                  value={formData.newPassword}
-                  onChange={(e) => {
-                    setFormData({ ...formData, newPassword: e.target.value });
-                    setErrors({ ...errors, newPassword: '' });
-                  }}
-                  className="pl-10 pr-10"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('new')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPasswords.new ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-              </div>
-              {errors.newPassword && (
-                <p className="text-sm text-destructive">{errors.newPassword}</p>
-              )}
-            </div>
 
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-muted-foreground" />
+                {/* New Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Input
+                      id="newPassword"
+                      type={showPasswords.new ? 'text' : 'password'}
+                      placeholder="Enter new password (min 8 characters)"
+                      value={formData.newPassword}
+                      onChange={(e) => {
+                        setFormData({ ...formData, newPassword: e.target.value });
+                        setErrors({ ...errors, newPassword: '' });
+                      }}
+                      className="pl-10 pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('new')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.new ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.newPassword && (
+                    <p className="text-sm text-destructive">{errors.newPassword}</p>
+                  )}
                 </div>
-                <Input
-                  id="confirmPassword"
-                  type={showPasswords.confirm ? 'text' : 'password'}
-                  placeholder="Confirm your new password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => {
-                    setFormData({ ...formData, confirmPassword: e.target.value });
-                    setErrors({ ...errors, confirmPassword: '' });
-                  }}
-                  className="pl-10 pr-10"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => togglePasswordVisibility('confirm')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPasswords.confirm ? (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <Input
+                      id="confirmPassword"
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      placeholder="Confirm your new password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => {
+                        setFormData({ ...formData, confirmPassword: e.target.value });
+                        setErrors({ ...errors, confirmPassword: '' });
+                      }}
+                      className="pl-10 pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility('confirm')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPasswords.confirm ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-destructive">{errors.confirmPassword}</p>
                   )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-destructive">{errors.confirmPassword}</p>
-              )}
-            </div>
+                </div>
 
-            {/* Password Requirements */}
-            <div className="rounded-lg bg-muted p-4">
-              <p className="text-sm font-medium mb-2">Password requirements:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li className="flex items-center gap-2">
-                  <span className={formData.newPassword.length >= 8 ? 'text-green-600' : ''}>
-                    • At least 8 characters
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className={formData.newPassword !== formData.currentPassword && formData.newPassword ? 'text-green-600' : ''}>
-                    • Different from current password
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? 'text-green-600' : ''}>
-                    • Passwords match
-                  </span>
-                </li>
-              </ul>
-            </div>
+                {/* Password Requirements */}
+                <div className="rounded-lg bg-muted p-4">
+                  <p className="text-sm font-medium mb-2">Password requirements:</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li className="flex items-center gap-2">
+                      <span className={formData.newPassword.length >= 8 ? 'text-green-600' : ''}>
+                        • At least 8 characters
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={formData.newPassword !== formData.currentPassword && formData.newPassword ? 'text-green-600' : ''}>
+                        • Different from current password
+                      </span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? 'text-green-600' : ''}>
+                        • Passwords match
+                      </span>
+                    </li>
+                  </ul>
+                </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
-              style={{
-                background: activeBranding.btn_primary_bg_color || undefined,
-                color: activeBranding.btn_primary_text_color || undefined,
-                borderRadius: activeBranding.border_radius || undefined,
-                fontFamily: activeBranding.font_family || undefined,
-                boxShadow: activeBranding.box_shadow || undefined,
-                border: activeBranding.btn_primary_bg_color ? 'none' : undefined,
-                transition: 'background 0.2s',
-              }}
-              onMouseOver={e => {
-                if (activeBranding.btn_primary_hover_bg_color) {
-                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_hover_bg_color;
-                }
-              }}
-              onMouseOut={e => {
-                if (activeBranding.btn_primary_bg_color) {
-                  (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_bg_color;
-                }
-              }}
-            >
-              {isLoading ? 'Changing Password...' : 'Change Password'}
-            </Button>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={isLoading}
+                  style={{
+                    background: activeBranding.btn_primary_bg_color || undefined,
+                    color: activeBranding.btn_primary_text_color || undefined,
+                    borderRadius: activeBranding.border_radius || undefined,
+                    fontFamily: activeBranding.font_family || undefined,
+                    boxShadow: activeBranding.box_shadow || undefined,
+                    border: activeBranding.btn_primary_bg_color ? 'none' : undefined,
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseOver={e => {
+                    if (activeBranding.btn_primary_hover_bg_color) {
+                      (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_hover_bg_color;
+                    }
+                  }}
+                  onMouseOut={e => {
+                    if (activeBranding.btn_primary_bg_color) {
+                      (e.currentTarget as HTMLButtonElement).style.background = activeBranding.btn_primary_bg_color;
+                    }
+                  }}
+                >
+                  {isLoading ? 'Changing Password...' : 'Change Password'}
+                </Button>
 
-            {/* Logout Option */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleLogout}
-              style={{ borderRadius: activeBranding.border_radius || undefined }}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout Instead
-            </Button>
-          </form>
+                {/* Logout Option */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleLogout}
+                  style={{ borderRadius: activeBranding.border_radius || undefined }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout Instead
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>

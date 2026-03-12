@@ -34,7 +34,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const avatarUrl = getAssetUrl(user?.avatarUrl);
 
   return (
-    <header 
+    <header
       className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b px-4 lg:px-6"
       style={{
         backgroundColor: branding.header_bg_color,
@@ -61,7 +61,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               type="search"
               placeholder="Search..."
               className="w-full max-w-sm pl-8 border-0"
-              style={{ 
+              style={{
                 backgroundColor: branding.body_bg_color,
                 color: branding.text_primary_color,
               }}
@@ -85,9 +85,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
                 {avatarUrl && <AvatarImage src={avatarUrl} alt={user?.firstName || 'User'} />}
-                <AvatarFallback 
+                <AvatarFallback
                   className="text-sm"
-                  style={{ 
+                  style={{
                     backgroundColor: branding.primary_color,
                     color: branding.btn_primary_text_color,
                   }}
@@ -105,8 +105,8 @@ export function Topbar({ onMenuClick }: TopbarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={handleLogout} 
+            <DropdownMenuItem
+              onClick={handleLogout}
               className="cursor-pointer"
               style={{ color: branding.danger_color }}
             >

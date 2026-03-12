@@ -71,9 +71,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   // Determine if user is an agent based on role
   const isAgent = user?.role?.startsWith('agent');
-  
+
   const navItems = isAgent ? agentNavItems : partnerNavItems;
-  
+
   // If user has no permissions array or empty permissions, show all items
   // Otherwise filter based on permissions
   const filteredNavItems = user?.permissions && user.permissions.length > 0
@@ -106,9 +106,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         style={sidebarStyle}
       >
         {/* Header */}
-        <div 
+        <div
           className="flex h-16 items-center justify-between px-4"
-          style={{ 
+          style={{
             borderBottomColor: branding.sidebar_bg_color,
             borderBottomWidth: '1px',
             backgroundColor: branding.sidebar_logo_bg_color || branding.sidebar_bg_color
@@ -116,8 +116,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         >
           {logoUrl ? (
             <img
-              src={logoUrl} 
-              alt="Logo" 
+              src={logoUrl}
+              alt="Logo"
               className="h-10 max-w-[180px] object-contain"
             />
           ) : (
@@ -169,9 +169,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div 
+        <div
           className="p-4"
-          style={{ 
+          style={{
             borderTopColor: branding.sidebar_bg_color,
             borderTopWidth: '1px'
           }}

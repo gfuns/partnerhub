@@ -14,7 +14,7 @@ export default function PartnerKycPending() {
     await logout();
     navigate('/partner', { replace: true });
   };
-  
+
   const status = user?.kycStatus || 'pending_review';
 
   // Redirect if not authenticated
@@ -114,14 +114,14 @@ export default function PartnerKycPending() {
 
             {status === 'rejected' && (
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={() => navigate('/partner-kyc-onboarding')}
                   className="w-full"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Resubmit Application
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   className="w-full"
                   onClick={() => {
@@ -134,7 +134,7 @@ export default function PartnerKycPending() {
             )}
 
             {status === 'suspended' && (
-              <Button 
+              <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {
