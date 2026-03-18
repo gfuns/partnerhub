@@ -12,21 +12,21 @@ import transactionsService from '@/services/api/transactions.service';
 
 export default function AgentTransactionDetails() {
   const { id } = useParams();
-    const { data: txResp, isLoading: loadingTx } = useQuery({
-      queryKey: ['agent_transaction', id],
-      queryFn: () => transactionsService.getTransaction(id!),
-      enabled: !!id,
-    });
+  const { data: txResp, isLoading: loadingTx } = useQuery({
+    queryKey: ['agent_transaction', id],
+    queryFn: () => transactionsService.getTransaction(id!),
+    enabled: !!id,
+  });
 
-    const transaction = (txResp?.data as any)?.transaction ?? txResp?.data;
+  const transaction = (txResp?.data as any)?.transaction ?? txResp?.data;
 
-    const gatewayResponse = (() => {
-      try {
-        return transaction?.gateway_response ? JSON.parse(transaction.gateway_response) : null;
-      } catch (e) {
-        return null;
-      }
-    })();
+  const gatewayResponse = (() => {
+    try {
+      return transaction?.gateway_response ? JSON.parse(transaction.gateway_response) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   return (
     <div>
@@ -48,7 +48,7 @@ export default function AgentTransactionDetails() {
         {/* Transaction Summary */}
         <Card className="lg:col-span-2">
           <CardHeader>
-              <CardTitle className="text-base font-medium flex items-center justify-between">
+            <CardTitle className="text-base font-medium flex items-center justify-between">
               Transaction Summary
               <StatusBadge status={(transaction?.status) === 'success' ? 'success' : ((transaction?.status || '').toString().includes('pending') ? 'pending' : 'error')} />
             </CardTitle>
@@ -67,12 +67,12 @@ export default function AgentTransactionDetails() {
                   <Hash className="h-4 w-4" />
                   Reference
                 </p>
-                  <p className="font-mono font-medium">{transaction?.ref ?? transaction?.trx ?? '—'}</p>
+                <p className="font-mono font-medium">{transaction?.ref ?? transaction?.trx ?? '—'}</p>
               </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">RRN</p>
-                  <p className="font-mono font-medium">{transaction?.rrn ?? '—'}</p>
-                </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">RRN</p>
+                <p className="font-mono font-medium">{transaction?.rrn ?? '—'}</p>
+              </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
@@ -101,10 +101,10 @@ export default function AgentTransactionDetails() {
                 <p className="text-sm text-muted-foreground">Amount</p>
                 <p className="text-xl font-semibold">{transaction?.amount_formatted ?? (transaction?.amount != null ? transaction.amount.toLocaleString() : '—')}</p>
               </div>
-              <div className="p-4 rounded-lg bg-muted/50">
+              {/* <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">Fee</p>
                 <p className="text-xl font-semibold">{transaction?.fee_formatted ?? (transaction?.fee != null ? transaction.fee.toLocaleString() : '—')}</p>
-              </div>
+              </div> */}
               {/* <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-xl font-semibold">
