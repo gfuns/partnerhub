@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Edit, Ban, CreditCard, TrendingUp, Activity, Users, CalendarCheck, FileCheck, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Ban, CreditCard, TrendingUp, Activity, Users, CalendarCheck, FileCheck, Plus, Loader2, Key } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { StatCard } from '@/components/StatCard';
 import { DataTable } from '@/components/DataTable';
@@ -53,7 +53,7 @@ export default function AgentDetails() {
   const [validatedTerminal, setValidatedTerminal] = useState<TerminalDetails | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
-  
+
   // Virtual Account states
   const [hasVirtualAccount, setHasVirtualAccount] = useState(false);
   const [banks, setBanks] = useState<Bank[]>([]);
@@ -70,6 +70,10 @@ export default function AgentDetails() {
   const [onboardProfile, setOnboardProfile] = useState<Record<string, any>>({});
   const [onboardDocuments, setOnboardDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  // Password reset states
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -171,7 +175,7 @@ export default function AgentDetails() {
       const response = await agentsService.getTerminalBySerialNumber({
         serial_number: terminalSerialNumber.trim(),
       });
-      
+
       // Check if terminal is already assigned
       if (response.data.agent_id !== null) {
         toast({
@@ -184,7 +188,7 @@ export default function AgentDetails() {
         setValidatedTerminal(null);
         return;
       }
-      
+
       setValidatedTerminal(response.data);
       toast({
         title: 'Terminal Validated',
@@ -327,7 +331,7 @@ export default function AgentDetails() {
 
   const handleToggleStatus = async () => {
     if (!agent) return;
-    
+
     try {
       await agentsService.toggleStatus(agent.id);
       toast({
@@ -342,6 +346,29 @@ export default function AgentDetails() {
         description: 'Failed to update agent status',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUserId) return;
+
+    try {
+      setIsResettingPassword(true);
+      await agentsService.resetPassword(agent.id, { user_id: resetPasswordUserId });
+      toast({
+        title: 'Success',
+        description: 'Password reset link has been sent to the user',
+      });
+      setResetPasswordDialogOpen(false);
+      setResetPasswordUserId(null);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to reset password',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -388,15 +415,15 @@ export default function AgentDetails() {
   }
 
   const terminalColumns = [
-    { 
-      key: 'terminal_id', 
+    {
+      key: 'terminal_id',
       header: 'Terminal ID',
       render: (item: AgentTerminal) => (
         <span className="font-mono font-medium">{item.terminal_id}</span>
       ),
     },
-    { 
-      key: 'serial_number', 
+    {
+      key: 'serial_number',
       header: 'Serial Number',
       render: (item: AgentTerminal) => (
         <span className="text-sm">{item.serial_number}</span>
@@ -412,8 +439,8 @@ export default function AgentDetails() {
   ];
 
   const userColumns = [
-    { 
-      key: 'name', 
+    {
+      key: 'name',
       header: 'Name',
       render: (item: AgentUser) => (
         <div className="flex flex-col">
@@ -424,15 +451,15 @@ export default function AgentDetails() {
         </div>
       ),
     },
-    { 
-      key: 'phone', 
+    {
+      key: 'phone',
       header: 'Phone',
       render: (item: AgentUser) => (
         <span className="text-sm">{item.partner_user.phone}</span>
       ),
     },
-    { 
-      key: 'role', 
+    {
+      key: 'role',
       header: 'Role',
       render: (item: AgentUser) => (
         <div className="flex items-center gap-2">
@@ -451,15 +478,34 @@ export default function AgentDetails() {
         </div>
       ),
     },
-    { 
-      key: 'last_login', 
+    {
+      key: 'last_login',
       header: 'Last Login',
       render: (item: AgentUser) => (
         <span className="text-sm">
-          {item.partner_user.last_login_at 
-            ? new Date(item.partner_user.last_login_at).toLocaleString() 
+          {item.partner_user.last_login_at
+            ? new Date(item.partner_user.last_login_at).toLocaleString()
             : 'Never'}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (item: AgentUser) => (
+        item.role === 'agent_owner' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setResetPasswordUserId(item.partner_user.id);
+              setResetPasswordDialogOpen(true);
+            }}
+            title="Reset Password"
+          >
+            <Key className="h-4 w-4" />
+          </Button>
+        ) : null
       ),
     },
   ];
@@ -482,8 +528,8 @@ export default function AgentDetails() {
               </Button>
             </PermissionGate>
             <PermissionGate permission="agents.disable">
-              <Button 
-                variant={agent.status === 'suspended' ? 'default' : 'destructive'} 
+              <Button
+                variant={agent.status === 'suspended' ? 'default' : 'destructive'}
                 onClick={() => setDisableDialogOpen(true)}
               >
                 <Ban className="mr-2 h-4 w-4" />
@@ -516,11 +562,11 @@ export default function AgentDetails() {
                 title="Active Terminals"
                 value={stats.active_terminals}
                 icon={Activity}
-                change={{ 
-                  value: stats.total_terminals > 0 
-                    ? Math.round((stats.active_terminals / stats.total_terminals) * 100) 
-                    : 0, 
-                  label: 'active' 
+                change={{
+                  value: stats.total_terminals > 0
+                    ? Math.round((stats.active_terminals / stats.total_terminals) * 100)
+                    : 0,
+                  label: 'active'
                 }}
                 trend="up"
               />
@@ -576,13 +622,13 @@ export default function AgentDetails() {
             <DetailCard title="KYC Status">
               <DetailRow label="Current Status" value={<StatusBadge status={agent.kyc_status} size="sm" />} />
               <DetailRow label="Business Type" value={agent.kyc_profile?.business_type || 'Not set'} />
-              <DetailRow 
-                label="Submitted" 
-                value={agent.kyc_submitted_at ? 'Yes' : 'No'} 
+              <DetailRow
+                label="Submitted"
+                value={agent.kyc_submitted_at ? 'Yes' : 'No'}
               />
-              <DetailRow 
-                label="Approved" 
-                value={agent.kyc_approved_at ? 'Yes' : 'No'} 
+              <DetailRow
+                label="Approved"
+                value={agent.kyc_approved_at ? 'Yes' : 'No'}
               />
             </DetailCard>
           </div>
@@ -594,26 +640,26 @@ export default function AgentDetails() {
               {/* Today's Performance */}
               <DetailCard title="Today's Performance">
                 <DetailRow label="Transactions" value={stats.today.transactions.toLocaleString()} />
-                <DetailRow 
-                  label="Volume" 
-                  value={`₦${stats.today.volume.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                <DetailRow
+                  label="Volume"
+                  value={`₦${stats.today.volume.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 />
-                <DetailRow 
-                  label="Success Rate" 
-                  value={`${stats.today.success_rate}%`} 
+                <DetailRow
+                  label="Success Rate"
+                  value={`${stats.today.success_rate}%`}
                 />
               </DetailCard>
 
               {/* This Month's Performance */}
               <DetailCard title="This Month's Performance">
                 <DetailRow label="Transactions" value={stats.this_month.transactions.toLocaleString()} />
-                <DetailRow 
-                  label="Volume" 
-                  value={`₦${stats.this_month.volume.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+                <DetailRow
+                  label="Volume"
+                  value={`₦${stats.this_month.volume.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 />
-                <DetailRow 
-                  label="Success Rate" 
-                  value={`${stats.this_month.success_rate}%`} 
+                <DetailRow
+                  label="Success Rate"
+                  value={`${stats.this_month.success_rate}%`}
                 />
               </DetailCard>
 
@@ -640,14 +686,14 @@ export default function AgentDetails() {
         </TabsContent>
 
         <TabsContent value="kyc" className="space-y-6">
-            {/* Partner onboarding actions */}
-            {agent && (agent.kyc_status === 'pending_onboarding' || agent.kyc_status === 'pending_correction') && hasPermission && hasPermission('kyc.onboard') && (
-              <div className="flex justify-end">
-                <Button onClick={() => { setOnboardDialogOpen(true); }}>
-                  {agent.kyc_status === 'pending_onboarding' ? 'Start Onbaording' : 'Update KYC'}
-                </Button>
-              </div>
-            )}
+          {/* Partner onboarding actions */}
+          {agent && (agent.kyc_status === 'pending_onboarding' || agent.kyc_status === 'pending_correction') && hasPermission && hasPermission('kyc.onboard') && (
+            <div className="flex justify-end">
+              <Button onClick={() => { setOnboardDialogOpen(true); }}>
+                {agent.kyc_status === 'pending_onboarding' ? 'Start Onbaording' : 'Update KYC'}
+              </Button>
+            </div>
+          )}
           {/* KYC Profile */}
           {agent.kyc_profile ? (
             <>
@@ -712,12 +758,12 @@ export default function AgentDetails() {
                 </DetailCard>
               )}
 
-            <OnboardAgentModal
-              open={onboardDialogOpen}
-              onOpenChange={setOnboardDialogOpen}
-              agentId={agent.id}
-              onSuccess={fetchAgentDetails}
-            />
+              <OnboardAgentModal
+                open={onboardDialogOpen}
+                onOpenChange={setOnboardDialogOpen}
+                agentId={agent.id}
+                onSuccess={fetchAgentDetails}
+              />
             </>
           ) : (
             <DetailCard title="KYC Profile">
@@ -764,6 +810,17 @@ export default function AgentDetails() {
         confirmLabel={agent.status === 'suspended' ? 'Activate Agent' : 'Suspend Agent'}
         variant={agent.status === 'suspended' ? 'default' : 'destructive'}
         onConfirm={handleToggleStatus}
+      />
+
+      {/* Reset Password Confirmation Dialog */}
+      <ConfirmDialog
+        open={resetPasswordDialogOpen}
+        onOpenChange={setResetPasswordDialogOpen}
+        title="Reset User Password"
+        description="Are you sure you want to send a password reset link to this user? They will receive an email with instructions to set a new password."
+        confirmLabel="Send Reset Link"
+        variant="default"
+        onConfirm={handleResetPassword}
       />
 
       {/* Assign Terminal Dialog */}
@@ -881,7 +938,7 @@ export default function AgentDetails() {
                             // value is bank.code when available, fall back to id string
                             setSelectedBankCode(value || null);
                             const found = banks.find(b => (b.bank_slug && b.bank_slug.toString() === value.toString()) || (b.id && b.id.toString() === value));
-                            
+
                             if (found && found.id) setBank(found);
                             else setBank(null);
                             setAccountName(''); // Reset account name when bank changes

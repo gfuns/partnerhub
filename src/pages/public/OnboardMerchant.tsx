@@ -2,9 +2,9 @@
  * Public Merchant Onboarding Page
  * - No auth required (not guarded by DashboardLayout)
  * - Loads partner branding from subdomain on mount
- * - Step 0: Existing or New merchant?
- *   - Existing: bank account lookup → pre-fill form
- *   - New: full form
+ * - Step 0: Account Lookup — verify bank account to pre-fill form
+ *   - Success: pre-fills all form data, proceeds to multi-step
+ *   - Failure / skip: user can proceed with blank form
  * - Step 1: Business / Contact Info (Agent creation fields)
  * - Step 2: KYC Profile (identity + bank details)
  * - Step 3: Document Upload (dynamic per business type)
@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Upload, User, Briefcase, FileText, ArrowRight, ArrowLeft, Loader2, X, Building2, AlertCircle, CreditCard } from 'lucide-react';
+import { Check, Upload, User, Briefcase, FileText, ArrowRight, ArrowLeft, Loader2, X, AlertCircle, CreditCard, Search, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -140,8 +140,13 @@ export default function OnboardMerchant() {
   const [loadingBrand, setLoadingBrand] = useState(true);
   const subdomain = detectSubdomain();
 
-  // Flow state
-  const [isReturning, setIsReturning] = useState<boolean | null>(null); // null = not decided yet
+  // Flow state:
+  //   'lookup'   = account lookup screen (default start)
+  //   'form'     = multi-step registration form
+  type FlowScreen = 'lookup' | 'form';
+  const [screen, setScreen] = useState<FlowScreen>('lookup');
+  // Whether the form was pre-filled from a successful lookup
+  const [lookupPrefilled, setLookupPrefilled] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -151,7 +156,8 @@ export default function OnboardMerchant() {
   const [lookupAccountNumber, setLookupAccountNumber] = useState('');
   const [lookupBankCode, setLookupBankCode] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
-  const [lookupDone, setLookupDone] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [lookupSuccess, setLookupSuccess] = useState(false); // true after a successful lookup
   const [accountVerifyLoading, setAccountVerifyLoading] = useState(false);
   const [accountVerified, setAccountVerified] = useState(false);
 
@@ -190,7 +196,14 @@ export default function OnboardMerchant() {
 
     // Load banks (try public endpoint first)
     publicService.getBanks(subdomain)
-      .then((r) => { if (r?.data) setBanks(r.data); })
+      .then((r) => {
+        if (r?.data) {
+          console.log(r?.data);
+
+          setBanks(r.data);
+          setLookupBankCode(r?.data?.[0]?.code || '');
+        }
+      })
       .catch(() => {
         // fallback to authenticated endpoint if needed
       });
@@ -200,13 +213,16 @@ export default function OnboardMerchant() {
   const handleVerify = async () => {
     if (!lookupAccountNumber || !lookupBankCode) return;
     setVerifyLoading(true);
+    setLookupError(null);
+    setLookupSuccess(false);
     try {
       const resp = await publicService.verifyAccount({ account_number: lookupAccountNumber, bank_code: lookupBankCode, subdomain: subdomain });
       if (resp?.success && resp?.data) {
         const bank = banks.find(b => b.code === lookupBankCode);
+        // Pre-fill business + KYC forms with lookup data
         setBusinessForm(prev => ({
           ...prev,
-          contact_name: `${resp?.data?.first_name} ${resp?.data?.last_name}` || prev.contact_name,
+          contact_name: resp?.data?.first_name ? `${resp.data.first_name} ${resp.data.last_name}` : prev.contact_name,
           contact_phone: resp?.data?.mobile || '',
           contact_email: resp?.data?.email || '',
           owner_first_name: resp?.data?.first_name || '',
@@ -222,16 +238,24 @@ export default function OnboardMerchant() {
           bank_code: lookupBankCode,
           bvn: resp.data.bvn || prev.bvn,
         }));
-        setLookupDone(true);
-        sonnerToast.success('Account verified', { description: `Account holder: ${resp.data.accountName}` });
+        setLookupSuccess(true);
+        setLookupPrefilled(true);
+        sonnerToast.success('Account verified', { description: `Account holder: ${resp.data.accountName || `${resp.data.first_name} ${resp.data.last_name}`}` });
       } else {
-        sonnerToast.error('Could not verify account', { description: resp?.message || 'Please check the account number and bank selected.' });
+        setLookupError(resp?.message || 'We could not find an account with those details. You may still register without account lookup.');
       }
     } catch {
-      sonnerToast.error('Could not verify account', { description: 'Please check the account number and bank selected.' });
+      setLookupError('We could not verify the account. Please check the details and try again, or register without account lookup.');
     } finally {
       setVerifyLoading(false);
     }
+  };
+
+  // Start the form (either after successful lookup, or skipped)
+  const handleProceedToForm = () => {
+    setCurrentStep(1);
+    setScreen('form');
+    window.scrollTo(0, 0);
   };
 
   // Auto-verify account when account number reaches 10 digits and bank_code is selected
@@ -340,8 +364,8 @@ export default function OnboardMerchant() {
 
   const handleBack = () => {
     if (currentStep === 1) {
-      // Go back to the New / Existing merchant choice screen
-      setIsReturning(null);
+      // Return to the account lookup screen
+      setScreen('lookup');
       window.scrollTo(0, 0);
       return;
     }
@@ -475,74 +499,33 @@ export default function OnboardMerchant() {
     );
   }
 
-  // ── Render: choose type (step 0) ──────────────────────────────────────────
-  if (isReturning === null) {
-    return (
-      <OnboardLayout activeBranding={activeBranding} logoUrl={logoUrl} partnerName={partnerName}>
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold mb-3">Merchant Onboarding</h1>
-            <p className="text-muted-foreground text-lg">Get started with your merchant account today</p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <button
-              onClick={() => setIsReturning(false)}
-              className="p-8 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 text-left transition-all group"
-              style={{ borderColor: undefined }}
-            >
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <User className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">New Merchant</h3>
-              <p className="text-sm text-muted-foreground">
-                First time? Register your business and complete KYC verification to start accepting payments.
-              </p>
-            </button>
-
-            <button
-              onClick={() => setIsReturning(true)}
-              className="p-8 rounded-xl border-2 border-border hover:border-primary hover:bg-primary/5 text-left transition-all group"
-            >
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <Building2 className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Existing Merchant</h3>
-              <p className="text-sm text-muted-foreground">
-                Already have a bank account with us? Look up your account to fast-track the registration process.
-              </p>
-            </button>
-          </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            Already have an account?{' '}
-            <button onClick={() => navigate('/login')} className="text-primary hover:underline font-medium">
-              Sign in here
-            </button>
-          </p>
-        </div>
-      </OnboardLayout>
-    );
-  }
-
-  // ── Render: returning merchant lookup ─────────────────────────────────────
-  if (isReturning && !lookupDone) {
+  // ── Render: account lookup screen (always the first screen) ─────────────
+  if (screen === 'lookup') {
     return (
       <OnboardLayout activeBranding={activeBranding} logoUrl={logoUrl} partnerName={partnerName}>
         <div className="max-w-xl mx-auto">
-          <div className="mb-8">
-            <button onClick={() => setIsReturning(null)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ArrowLeft className="h-4 w-4" /> Back
-            </button>
-            <h2 className="text-2xl font-bold mb-2">Account Lookup</h2>
-            <p className="text-muted-foreground">Enter your bank account details to auto-fill your registration form.</p>
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Search className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Merchant Sign Up</h1>
+            <p className="text-muted-foreground">
+              Enter your bank account details to look up your account and fast-track registration.
+            </p>
           </div>
 
           <Card>
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
                 <Label>Bank <span className="text-destructive">*</span></Label>
-                <Select value={lookupBankCode} onValueChange={setLookupBankCode}>
+                <Select
+                  value={lookupBankCode}
+                  onValueChange={(v) => {
+                    setLookupBankCode(v);
+                    setLookupError(null);
+                    setLookupSuccess(false);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select your bank" />
                   </SelectTrigger>
@@ -553,30 +536,91 @@ export default function OnboardMerchant() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label>Account Number <span className="text-destructive">*</span></Label>
                 <Input
                   value={lookupAccountNumber}
-                  onChange={(e) => setLookupAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) => {
+                    setLookupAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    setLookupError(null);
+                    setLookupSuccess(false);
+                  }}
                   placeholder="10-digit account number"
                   inputMode="numeric"
+                  maxLength={10}
                 />
               </div>
+
+              {/* Error alert */}
+              {lookupError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{lookupError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Success banner */}
+              {lookupSuccess && (
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription>
+                    Account found! Your details have been pre-filled. Click <strong>Continue</strong> to proceed.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Verify / Continue button */}
+              {!lookupSuccess ? (
+                <Button
+                  className="w-full"
+                  onClick={handleVerify}
+                  disabled={verifyLoading || !lookupAccountNumber || !lookupBankCode || lookupAccountNumber.length !== 10}
+                  style={{
+                    background: activeBranding.btn_primary_bg_color || undefined,
+                    color: activeBranding.btn_primary_text_color || undefined,
+                  }}
+                >
+                  {verifyLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</> : <><Search className="mr-2 h-4 w-4" /> Look Up Account</>}
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  onClick={handleProceedToForm}
+                  style={{
+                    background: activeBranding.btn_primary_bg_color || undefined,
+                    color: activeBranding.btn_primary_text_color || undefined,
+                  }}
+                >
+                  Continue to Registration <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+
+              {/* Skip lookup */}
               <Button
+                variant="outline"
                 className="w-full"
-                onClick={handleVerify}
-                disabled={verifyLoading || !lookupAccountNumber || !lookupBankCode || lookupAccountNumber.length !== 10}
-                style={{
-                  background: activeBranding.btn_primary_bg_color || undefined,
-                  color: activeBranding.btn_primary_text_color || undefined,
+                onClick={() => {
+                  setLookupPrefilled(false);
+                  handleProceedToForm();
                 }}
               >
-                {verifyLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</> : 'Verify Account'}
+                Register without account lookup
               </Button>
+
               <p className="text-center text-sm text-muted-foreground">
-                Not an existing merchant?{' '}
-                <button onClick={() => { setIsReturning(false); }} className="text-primary hover:underline">
-                  Register as new
+                Already have an account?{' '}
+                <button onClick={() => navigate('/login')} className="text-primary hover:underline font-medium">
+                  Sign in here
                 </button>
               </p>
             </CardContent>
@@ -629,8 +673,8 @@ export default function OnboardMerchant() {
               setBusinessForm(prev => ({ ...prev, [field]: value }));
               if (businessErrors[field]) setBusinessErrors(prev => ({ ...prev, [field]: undefined }));
             }}
-            isReturning={!!isReturning}
-            onBack={() => setIsReturning(null)}
+            isReturning={lookupPrefilled}
+            onBack={() => { setScreen('lookup'); window.scrollTo(0, 0); }}
           />
         )}
 
@@ -641,7 +685,7 @@ export default function OnboardMerchant() {
             errors={kycErrors}
             banks={banks}
             subdomain={subdomain}
-            isReturning={isReturning}
+            isReturning={lookupPrefilled}
             onChange={(field, value) => {
               setKycForm(prev => ({ ...prev, [field]: value as any }));
               if (kycErrors[field]) setKycErrors(prev => ({ ...prev, [field]: undefined }));

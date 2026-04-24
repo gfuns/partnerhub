@@ -274,6 +274,11 @@ export interface VerifyAccountResponse {
   message?: string;
 }
 
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
 class AgentsService {
   /**
    * List agents with pagination and filters
@@ -350,6 +355,13 @@ class AgentsService {
    */
   async verifyAccount(data: VerifyAccountRequest): Promise<VerifyAccountResponse> {
     return apiService.post('/banks/verify', data);
+  }
+
+  /**
+   * Send password reset link to agent user
+   */
+  async resetPassword(id: number, data?: any): Promise<ResetPasswordResponse> {
+    return apiService.post(`/agents/${id}/reset-password`, data);
   }
 }
 
