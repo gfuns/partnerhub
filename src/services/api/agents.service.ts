@@ -180,6 +180,9 @@ export interface UpdateAgentRequest {
   city?: string;
   state?: string;
   lga?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
 }
 
 export interface UpdateAgentResponse {

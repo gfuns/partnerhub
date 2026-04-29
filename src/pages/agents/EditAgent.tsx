@@ -61,7 +61,7 @@ export default function EditAgent() {
       setIsLoading(true);
       const response = await agentsService.getAgent(Number(id));
       const agent = response.data.agent;
-      
+
       setFormData({
         business_name: agent.business_name,
         contact_name: agent.contact_name,
@@ -121,7 +121,7 @@ export default function EditAgent() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    
+
     try {
       const updateData: UpdateAgentRequest = {
         business_name: formData.business_name,
@@ -129,6 +129,9 @@ export default function EditAgent() {
         city: formData.city,
         state: formData.state,
         lga: formData.lga || undefined,
+        contact_name: formData.contact_name,
+        contact_email: formData.contact_email,
+        contact_phone: formData.contact_phone,
       };
 
       await agentsService.updateAgent(Number(id), updateData);
@@ -252,6 +255,7 @@ export default function EditAgent() {
                 <FormField label="Contact Name" required>
                   <Input
                     value={formData.contact_name}
+                    onChange={(e) => updateField('contact_name', e.target.value)}
                   />
                 </FormField>
 
@@ -259,12 +263,14 @@ export default function EditAgent() {
                   <Input
                     type="email"
                     value={formData.contact_email}
+                    onChange={(e) => updateField('contact_email', e.target.value)}
                   />
                 </FormField>
 
                 <FormField label="Contact Phone" required>
                   <Input
                     value={formData.contact_phone}
+                    onChange={(e) => updateField('contact_phone', e.target.value)}
                   />
                 </FormField>
               </FormSection>
