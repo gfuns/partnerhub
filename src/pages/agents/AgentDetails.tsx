@@ -74,6 +74,17 @@ export default function AgentDetails() {
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [resetPasswordUserId, setResetPasswordUserId] = useState<number | null>(null);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  // Edit user states
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<AgentUser | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    role: string;
+  }>({ first_name: '', last_name: '', email: '', phone: '', role: '' });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -372,6 +383,49 @@ export default function AgentDetails() {
     }
   };
 
+  const handleOpenEditUser = (user: AgentUser) => {
+    setEditingUser(user);
+    setEditFormData({
+      first_name: user.partner_user.first_name,
+      last_name: user.partner_user.last_name,
+      email: user.partner_user.email,
+      phone: user.partner_user.phone,
+      role: user.role,
+    });
+    setEditUserDialogOpen(true);
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      setIsSavingEdit(true);
+      // Call API to update user details
+      await agentsService.updateAgentUser(agent.id, editingUser.partner_user.id, {
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        email: editFormData.email,
+        phone: editFormData.phone,
+        role: editFormData.role,
+      });
+      toast({
+        title: 'Success',
+        description: 'User details updated successfully',
+      });
+      setEditUserDialogOpen(false);
+      setEditingUser(null);
+      fetchAgentDetails();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update user details',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -493,19 +547,29 @@ export default function AgentDetails() {
       key: 'actions',
       header: 'Actions',
       render: (item: AgentUser) => (
-        item.role === 'agent_owner' ? (
+        <div className="flex gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              setResetPasswordUserId(item.partner_user.id);
-              setResetPasswordDialogOpen(true);
-            }}
-            title="Reset Password"
+            onClick={() => handleOpenEditUser(item)}
+            title="Edit User"
           >
-            <Key className="h-4 w-4" />
+            <Edit className="h-4 w-4" />
           </Button>
-        ) : null
+          {item.role === 'agent_owner' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setResetPasswordUserId(item.partner_user.id);
+                setResetPasswordDialogOpen(true);
+              }}
+              title="Reset Password"
+            >
+              <Key className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
@@ -822,6 +886,93 @@ export default function AgentDetails() {
         variant="default"
         onConfirm={handleResetPassword}
       />
+
+      {/* Edit User Dialog */}
+      <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User Details</DialogTitle>
+            <DialogDescription>
+              Update the user's personal and role information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="first-name">First Name *</Label>
+                <Input
+                  id="first-name"
+                  value={editFormData.first_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, first_name: e.target.value })}
+                  disabled={isSavingEdit}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last-name">Last Name *</Label>
+                <Input
+                  id="last-name"
+                  value={editFormData.last_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, last_name: e.target.value })}
+                  disabled={isSavingEdit}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                disabled={isSavingEdit}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                disabled={isSavingEdit}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role *</Label>
+              <Select
+                value={editFormData.role}
+                onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}
+                disabled={isSavingEdit}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="agent_owner">Agent Owner</SelectItem>
+                  <SelectItem value="agent_user">Agent User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditUserDialogOpen(false)}
+              disabled={isSavingEdit}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEditUser} disabled={isSavingEdit}>
+              {isSavingEdit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Assign Terminal Dialog */}
       <Dialog open={assignTerminalDialogOpen} onOpenChange={handleCloseAssignDialog}>

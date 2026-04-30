@@ -366,6 +366,13 @@ class AgentsService {
   async resetPassword(id: number, data?: any): Promise<ResetPasswordResponse> {
     return apiService.post(`/agents/${id}/reset-password`, data);
   }
+
+  /**
+   * Update agent user details
+   */
+  async updateAgentUser(agentId: number, userId: number, data: any): Promise<any> {
+    return apiService.post(`/agents/${agentId}/users/${userId}/update`, data);
+  }
 }
 
 export const agentsService = new AgentsService();
