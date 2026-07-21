@@ -19,6 +19,7 @@ export { usersService } from './users.service';
 export { settingsService } from './settings.service';
 export { commissionService, calculateFee, formatMoney } from './commission.service';
 export { walletService } from './wallet.service';
+export { dynamicAccountsService } from './dynamic-accounts.service';
 export { settlementService, calculateSettlementFee } from './settlement.service';
 export { supportService } from './support.service';
 
@@ -142,6 +143,15 @@ export type {
   SweepConfigResponse,
   UpdateSweepConfigRequest,
 } from './wallet.service';
+
+export type {
+  DynamicAccountStatus,
+  DynamicAccount,
+  DynamicAccountsListParams,
+  DynamicAccountsListResponse,
+  CreateDynamicAccountRequest,
+  DynamicAccountResponse,
+} from './dynamic-accounts.service';
 
 // Support types are exported from @/types/support directly
 

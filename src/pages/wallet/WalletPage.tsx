@@ -18,6 +18,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { TablePagination } from '@/components/TablePagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -61,6 +62,8 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [transactionsMeta, setTransactionsMeta] = useState({ currentPage: 1, totalPages: 1, total: 0 });
   const [transactionFilter, setTransactionFilter] = useState<string>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   
   // Sweep state
   const [sweepableTerminals, setSweepableTerminals] = useState<SweepableTerminal[]>([]);
@@ -89,6 +92,9 @@ export default function WalletPage() {
       // Normalize wallet response: some endpoints return { data: { wallet: {...} } }
       const rawWallet: any = (walletRes as any).data;
       const walletObj: any = rawWallet?.wallet ?? rawWallet ?? null;
+      if (walletObj && walletObj.pending_settlements !== undefined && walletObj.pending_balance === undefined) {
+        walletObj.pending_balance = walletObj.pending_settlements;
+      }
       setWallet(walletObj);
 
       // Transactions may be returned as array or wrapped
@@ -113,18 +119,25 @@ export default function WalletPage() {
     }
   };
 
-  const loadTransactions = async (page: number, type?: string) => {
+  const loadTransactions = async (page: number, type?: string, start?: string, end?: string) => {
     try {
       const params: any = { page, per_page: 10 };
       if (type && type !== 'all') {
         params.type = type;
       }
+      if (start) params.start_date = start;
+      if (end) params.end_date = end;
+
       const res = await walletService.getTransactions(params);
-      setTransactions(res.data);
+      const txRaw: any = (res as any).data;
+      const txArray: WalletTransaction[] = Array.isArray(txRaw) ? txRaw : (txRaw?.transactions ?? txRaw ?? []);
+      const txMetaSource: any = (res as any).meta ?? txRaw?.meta ?? {};
+
+      setTransactions(txArray);
       setTransactionsMeta({
-        currentPage: res.meta.current_page,
-        totalPages: res.meta.last_page,
-        total: res.meta.total
+        currentPage: txMetaSource.current_page ?? 1,
+        totalPages: txMetaSource.last_page ?? 1,
+        total: txMetaSource.total ?? 0
       });
     } catch (error: any) {
       toast({
@@ -137,7 +150,68 @@ export default function WalletPage() {
 
   const handleTransactionFilterChange = (value: string) => {
     setTransactionFilter(value);
-    loadTransactions(1, value);
+    loadTransactions(1, value, startDate, endDate);
+  };
+
+  const applyDateFilters = () => {
+    loadTransactions(1, transactionFilter, startDate || undefined, endDate || undefined);
+  };
+
+  const setQuickRange = (range: 'today' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth') => {
+    const now = new Date();
+    const format = (date: Date) => date.toISOString().slice(0, 10);
+
+    let from = new Date(now);
+    let to = new Date(now);
+
+    if (range === 'last7') {
+      from.setDate(now.getDate() - 6);
+    } else if (range === 'last30') {
+      from.setDate(now.getDate() - 29);
+    } else if (range === 'thisMonth') {
+      from = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (range === 'lastMonth') {
+      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      to = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+
+    const start = format(from);
+    const end = format(to);
+    setStartDate(start);
+    setEndDate(end);
+    loadTransactions(1, transactionFilter, start, end);
+  };
+
+  const exportTransactionsCsv = () => {
+    if (!transactions.length) {
+      toast({ title: 'No data to export', description: 'Apply filters and try again.' });
+      return;
+    }
+
+    const headers = ['ID', 'Type', 'Description', 'Amount', 'Direction', 'Status', 'Date'];
+    const rows = transactions.map((tx) => [
+      tx.id,
+      tx.type,
+      tx.description || '',
+      tx.amount,
+      tx.direction || (tx.type === 'sweep_in' || tx.type === 'refund_in' || tx.type === 'sweep' ? 'credit' : 'debit'),
+      tx.status,
+      tx.created_at,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((field) => `"${String(field ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `wallet-history-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   const openSweepModal = async () => {
@@ -243,7 +317,9 @@ export default function WalletPage() {
       render: (item: WalletTransaction) => {
         const typeConfig: Record<string, { icon: any; label: string; color: string }> = {
           sweep_in: { icon: ArrowDownToLine, label: 'Sweep In', color: 'text-success' },
+          sweep: { icon: ArrowDownToLine, label: 'Sweep', color: 'text-success' },
           settlement_out: { icon: ArrowUpFromLine, label: 'Settlement', color: 'text-destructive' },
+          settlement: { icon: ArrowUpFromLine, label: 'Settlement', color: 'text-destructive' },
           refund_in: { icon: RefreshCcw, label: 'Refund', color: 'text-success' },
           fee_out: { icon: ArrowUpFromLine, label: 'Fee', color: 'text-muted-foreground' }
         };
@@ -258,13 +334,13 @@ export default function WalletPage() {
       }
     },
     { key: 'reference', header: 'Reference', render: (item: WalletTransaction) => (
-      <span className="font-mono text-sm">{item.reference}</span>
+      <span className="font-mono text-sm">{item.reference || `WALLET-TX-${item.id}`}</span>
     )},
     {
       key: 'amount',
       header: 'Amount',
       render: (item: WalletTransaction) => {
-        const isCredit = item.type === 'sweep_in' || item.type === 'refund_in';
+        const isCredit = item.type === 'sweep_in' || item.type === 'refund_in' || item.type === 'sweep' || item.direction === 'credit';
         return (
           <span className={`font-medium ${isCredit ? 'text-success' : 'text-destructive'}`}>
             {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
@@ -273,7 +349,7 @@ export default function WalletPage() {
       }
     },
     { key: 'balance_after', header: 'Balance After', render: (item: WalletTransaction) => (
-      <span>{formatCurrency(item.balance_after)}</span>
+      <span>{formatCurrency(item.balance_after || 0)}</span>
     )},
     {
       key: 'status',
@@ -426,16 +502,47 @@ export default function WalletPage() {
         <TabsContent value="transactions">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Transaction History</CardTitle>
-                <Tabs value={transactionFilter} onValueChange={handleTransactionFilterChange}>
-                  <TabsList className="h-8">
-                    <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                    <TabsTrigger value="sweep_in" className="text-xs">Sweeps</TabsTrigger>
-                    <TabsTrigger value="settlement_out" className="text-xs">Settlements</TabsTrigger>
-                    <TabsTrigger value="refund_in" className="text-xs">Refunds</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Transaction History</CardTitle>
+                  <Button variant="outline" size="sm" onClick={exportTransactionsCsv}>
+                    Export CSV
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-2">
+                  <Tabs value={transactionFilter} onValueChange={handleTransactionFilterChange}>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+                      <TabsTrigger value="sweep" className="text-xs">Sweeps</TabsTrigger>
+                      <TabsTrigger value="settlement" className="text-xs">Settlements</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-8 w-[160px]"
+                    />
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="h-8 w-[160px]"
+                    />
+                    <Button size="sm" variant="secondary" onClick={applyDateFilters}>Apply</Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setQuickRange('today')}>Today</Button>
+                  <Button size="sm" variant="outline" onClick={() => setQuickRange('last7')}>Last 7 days</Button>
+                  <Button size="sm" variant="outline" onClick={() => setQuickRange('last30')}>Last 30 days</Button>
+                  <Button size="sm" variant="outline" onClick={() => setQuickRange('thisMonth')}>This month</Button>
+                  <Button size="sm" variant="outline" onClick={() => setQuickRange('lastMonth')}>Last month</Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -448,7 +555,7 @@ export default function WalletPage() {
                 <TablePagination
                   currentPage={transactionsMeta.currentPage}
                   totalPages={transactionsMeta.totalPages}
-                  onPageChange={(page) => loadTransactions(page, transactionFilter)}
+                  onPageChange={(page) => loadTransactions(page, transactionFilter, startDate, endDate)}
                   totalItems={transactionsMeta.total}
                   pageSize={10}
                 />

@@ -12,19 +12,23 @@ export interface Wallet {
   last_settlement_at: string | null;
   created_at: string;
   updated_at: string;
+  balance?: number;
+  pending_settlements?: number;
 }
 
 export interface WalletTransaction {
   id: number;
-  wallet_id: number;
-  type: 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out';
-  reference: string;
+  wallet_id?: number;
+  type: 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out' | 'sweep' | 'settlement';
+  reference?: string;
   amount: number;
-  balance_before: number;
-  balance_after: number;
+  balance_before?: number;
+  balance_after?: number;
   description: string;
-  metadata: Record<string, any> | null;
-  status: 'completed' | 'pending' | 'failed';
+  metadata?: Record<string, any> | null;
+  status: 'completed' | 'pending' | 'failed' | 'paid';
+  direction?: 'credit' | 'debit';
+  mode?: 'auto' | 'manual';
   created_at: string;
 }
 
@@ -76,7 +80,7 @@ export interface WalletResponse {
 }
 
 export interface WalletTransactionsParams {
-  type?: 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out';
+  type?: 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out' | 'sweep' | 'settlement';
   status?: 'completed' | 'pending' | 'failed';
   start_date?: string;
   end_date?: string;
@@ -161,7 +165,15 @@ class WalletService {
    * Get wallet transaction history
    */
   async getTransactions(params?: WalletTransactionsParams): Promise<WalletTransactionsResponse> {
-    return apiService.get<WalletTransactionsResponse>(`${this.baseUrl}/transactions`, { params });
+    try {
+      return await apiService.get<WalletTransactionsResponse>(`${this.baseUrl}/history`, { params });
+    } catch (error: any) {
+      // Backward compatibility for older backend route
+      if (error?.status === 404) {
+        return apiService.get<WalletTransactionsResponse>(`${this.baseUrl}/transactions`, { params });
+      }
+      throw error;
+    }
   }
 
   /**

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Upload, Save, Key, Globe, Shield, Building2, Mail, Phone, MapPin, Users, Terminal, FileText, Loader2, RotateCcw, Lock, Palette, Image } from 'lucide-react';
+import { Upload, Save, Key, Globe, Shield, Building2, Mail, Phone, MapPin, Users, Terminal, FileText, Loader2, RotateCcw, Lock, Palette, Image, Copy, Eye, EyeOff } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { PermissionGate } from '@/components/PermissionGate';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import settingsService, { 
@@ -33,6 +34,10 @@ export default function SettingsPage() {
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isResettingBranding, setIsResettingBranding] = useState(false);
+  const [isRegeneratingToken, setIsRegeneratingToken] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [newApiToken, setNewApiToken] = useState<string | null>(null);
+  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   
   // Settings data
   const [settingsData, setSettingsData] = useState<SettingsData | null>(null);
@@ -47,6 +52,9 @@ export default function SettingsPage() {
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
   const [description, setDescription] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [regenerateWebhookSecret, setRegenerateWebhookSecret] = useState(false);
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   
   // Branding fields
   const [branding, setBranding] = useState<Partial<BrandingSettings>>({});
@@ -80,6 +88,9 @@ export default function SettingsPage() {
       
       // Set branding
       setBranding(response.data.branding);
+      setWebhookUrl(response.data.webhook?.webhook_url || '');
+      setRegenerateWebhookSecret(false);
+      setShowWebhookSecret(false);
       
       // Determine locked fields if KYC is approved
       if (profile.is_kyc_approved) {
@@ -191,6 +202,118 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRegenerateApiToken = async () => {
+    setIsRegeneratingToken(true);
+    try {
+      const response = await settingsService.regenerateApiToken();
+      setNewApiToken(response.data?.api_token || null);
+      toast({
+        title: 'API token regenerated',
+        description: response.message || 'Save this token now. It will not be shown again.',
+      });
+      await loadSettings();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Token regeneration failed',
+        description: error.response?.data?.message || error.message || 'Please try again.',
+      });
+    } finally {
+      setIsRegeneratingToken(false);
+      setShowRegenerateConfirm(false);
+    }
+  };
+
+  const handleCopyToken = async () => {
+    if (!newApiToken) return;
+
+    try {
+      await navigator.clipboard.writeText(newApiToken);
+      toast({ title: 'Token copied', description: 'API token copied to clipboard.' });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Copy failed',
+        description: 'Unable to copy token. Please copy manually.',
+      });
+    }
+  };
+
+  const handleSaveWebhook = async () => {
+    setIsSavingWebhook(true);
+    try {
+      const payload = {
+        partner_id: profile?.id,
+        webhook_url: webhookUrl || null,
+        regenerate_secret: regenerateWebhookSecret,
+      };
+
+      const response = await settingsService.updateWebhookSettings(payload);
+      const updatedWebhookUrl = response.data?.webhook_url ?? webhookUrl ?? null;
+      const regeneratedSecret = response.data?.webhook_secret ?? null;
+
+      setWebhookUrl(updatedWebhookUrl || '');
+      setSettingsData((prev) => {
+        if (!prev) return prev;
+
+        const existingSecret = prev.webhook?.webhook_secret ?? null;
+        const nextSecret = regeneratedSecret ?? existingSecret;
+
+        return {
+          ...prev,
+          webhook: {
+            ...prev.webhook,
+            webhook_url: updatedWebhookUrl,
+            webhook_secret: nextSecret,
+            webhook_max_retries: response.data?.webhook_max_retries ?? prev.webhook?.webhook_max_retries,
+            has_webhook_secret: Boolean(nextSecret),
+          },
+        };
+      });
+
+      if (regeneratedSecret) {
+        setShowWebhookSecret(false);
+      }
+
+      toast({
+        title: 'Webhook settings updated',
+        description: response.message || 'Webhook settings saved successfully.',
+      });
+      setRegenerateWebhookSecret(false);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Webhook update failed',
+        description: error.response?.data?.message || error.message || 'Please try again.',
+      });
+    } finally {
+      setIsSavingWebhook(false);
+    }
+  };
+
+  const handleCopyWebhookSecret = async () => {
+    const webhookSecret = settingsData?.webhook?.webhook_secret;
+    if (!webhookSecret) return;
+
+    try {
+      await navigator.clipboard.writeText(webhookSecret);
+      toast({ title: 'Secret copied', description: 'Webhook secret copied to clipboard.' });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Copy failed',
+        description: 'Unable to copy webhook secret. Please copy manually.',
+      });
+    }
+  };
+
+  const getMaskedWebhookSecret = (secret?: string | null) => {
+    if (!secret) return 'No secret available';
+    if (secret.length <= 8) return '•'.repeat(secret.length);
+    const maskedMiddle = '•'.repeat(Math.max(secret.length - 8, 6));
+    return `${secret.slice(0, 4)}${maskedMiddle}${secret.slice(-4)}`;
+  };
+
   const isFieldLocked = (field: string) => lockedFields.includes(field);
 
   const getStatusBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
@@ -219,6 +342,7 @@ export default function SettingsPage() {
   const statistics = settingsData?.statistics;
   const kycProfile = settingsData?.kyc_profile;
   const latestReview = settingsData?.latest_kyc_review;
+  const webhookSecret = settingsData?.webhook?.webhook_secret;
 
   return (
     <div>
@@ -231,8 +355,8 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
-          {/* <TabsTrigger value="api">API & Webhooks</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger> */}
+          <TabsTrigger value="api">API & Webhooks</TabsTrigger>
+          {/* <TabsTrigger value="security">Security</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="profile">
@@ -1828,77 +1952,169 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="api">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                API & Webhook Configuration
-              </CardTitle>
-              <CardDescription>
-                View your webhook configuration and hub settings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Webhook URL</Label>
-                <Input
-                  value={settingsData?.webhook?.webhook_url || 'Not configured'}
-                  disabled
-                  className="font-mono bg-muted"
-                />
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Shield className="h-3 w-3" />
-                  {settingsData?.webhook?.has_webhook_secret ? (
-                    <span className="text-green-600">Webhook secret is configured</span>
-                  ) : (
-                    <span>No webhook secret configured</span>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="h-5 w-5" />
+                  External API Access
+                </CardTitle>
+                <CardDescription>
+                  Manage your external API token for integrations.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="text-sm font-medium">Token Status</p>
+                    <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Shield className="h-4 w-4" />
+                      {settingsData?.webhook?.has_api_token ? (
+                        <span className="text-green-600">Active token configured</span>
+                      ) : (
+                        <span>No API token generated yet</span>
+                      )}
+                    </div>
+                  </div>
+                  <PermissionGate permission="settings.edit">
+                    <Button onClick={() => setShowRegenerateConfirm(true)} disabled={isRegeneratingToken}>
+                      {isRegeneratingToken ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                      Regenerate Token
+                    </Button>
+                  </PermissionGate>
+                </div>
+
+                {newApiToken && (
+                  <Alert>
+                    <AlertDescription className="space-y-3">
+                      <p className="text-sm font-medium">New API token generated. Save it now, it will only be shown once.</p>
+                      <div className="flex items-center gap-2">
+                        <Input value={newApiToken} readOnly className="font-mono text-xs" />
+                        <Button type="button" variant="outline" onClick={handleCopyToken}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </Button>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Webhook Configuration
+                </CardTitle>
+                <CardDescription>
+                  Configure webhook endpoint and rotate webhook secret.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="webhook-url">Webhook URL</Label>
+                  <Input
+                    id="webhook-url"
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://partner.com/webhook"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Webhook Secret</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Input
+                        type="text"
+                        readOnly
+                        value={showWebhookSecret ? (webhookSecret || '') : getMaskedWebhookSecret(webhookSecret)}
+                        placeholder="No secret available"
+                        className="h-8 w-[360px] max-w-full font-mono text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowWebhookSecret((prev) => !prev)}
+                        disabled={!webhookSecret}
+                      >
+                        {showWebhookSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyWebhookSecret}
+                        disabled={!webhookSecret}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={regenerateWebhookSecret}
+                      onChange={(e) => setRegenerateWebhookSecret(e.target.checked)}
+                    />
+                    Regenerate secret
+                  </label>
+                </div>
+
+                <PermissionGate permission="settings.edit">
+                  <Button onClick={handleSaveWebhook} disabled={isSavingWebhook}>
+                    {isSavingWebhook ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Webhook Settings
+                  </Button>
+                </PermissionGate>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Hub Settings</h4>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm font-medium">Hub Status</p>
+                      <Badge variant={settingsData?.hub_settings?.hub_enabled ? 'default' : 'secondary'} className="mt-1">
+                        {settingsData?.hub_settings?.hub_enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm font-medium">Agent Self-Registration</p>
+                      <Badge variant={settingsData?.hub_settings?.agent_self_registration ? 'default' : 'secondary'} className="mt-1">
+                        {settingsData?.hub_settings?.agent_self_registration ? 'Allowed' : 'Not Allowed'}
+                      </Badge>
+                    </div>
+                  </div>
+                  {settingsData?.hub_settings?.hub_url && (
+                    <div className="space-y-2">
+                      <Label>Hub URL</Label>
+                      <Input
+                        value={settingsData.hub_settings.hub_url}
+                        disabled
+                        className="font-mono bg-muted"
+                      />
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium">Hub Settings</h4>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border p-4">
-                    <p className="text-sm font-medium">Hub Status</p>
-                    <Badge variant={settingsData?.hub_settings?.hub_enabled ? 'default' : 'secondary'} className="mt-1">
-                      {settingsData?.hub_settings?.hub_enabled ? 'Enabled' : 'Disabled'}
-                    </Badge>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <p className="text-sm font-medium">Agent Self-Registration</p>
-                    <Badge variant={settingsData?.hub_settings?.agent_self_registration ? 'default' : 'secondary'} className="mt-1">
-                      {settingsData?.hub_settings?.agent_self_registration ? 'Allowed' : 'Not Allowed'}
-                    </Badge>
+                <div className="rounded-lg bg-secondary/50 p-4">
+                  <div className="flex items-start gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">API Documentation</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Use the frontend API docs for integration details and endpoint contracts.
+                      </p>
+                    </div>
                   </div>
                 </div>
-                {settingsData?.hub_settings?.hub_url && (
-                  <div className="space-y-2">
-                    <Label>Hub URL</Label>
-                    <Input
-                      value={settingsData.hub_settings.hub_url}
-                      disabled
-                      className="font-mono bg-muted"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-lg bg-secondary/50 p-4">
-                <div className="flex items-start gap-3">
-                  <Globe className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">API Documentation</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      For detailed API documentation and integration guides, contact your Xtrapay account manager.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="security">
@@ -1946,6 +2162,16 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={showRegenerateConfirm}
+        onOpenChange={setShowRegenerateConfirm}
+        title="Regenerate API token?"
+        description="This will invalidate the current API token immediately. Ensure dependent integrations are updated."
+        confirmLabel={isRegeneratingToken ? 'Regenerating...' : 'Regenerate'}
+        variant="destructive"
+        onConfirm={handleRegenerateApiToken}
+      />
     </div>
   );
 }

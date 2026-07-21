@@ -59,6 +59,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 
 // Partner pages - Wallet, Commissions, Settlements
 import WalletPage from "./pages/wallet/WalletPage";
+import DynamicAccountsPage from "./pages/wallet/DynamicAccountsPage";
 import PartnerCommissionsPage from "./pages/commissions/CommissionsPage";
 import PartnerSettlementsPage from "./pages/settlements/SettlementsPage";
 
@@ -141,6 +142,7 @@ const App = () => (
 
                 {/* Partner routes - Wallet, Commissions, Settlements */}
                 <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/virtual-accounts" element={<DynamicAccountsPage />} />
                 <Route path="/commissions" element={<PartnerCommissionsPage />} />
                 <Route path="/settlements" element={<PartnerSettlementsPage />} />
 

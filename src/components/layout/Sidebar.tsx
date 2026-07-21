@@ -27,7 +27,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  permission?: string;
+  permission?: string | string[];
 }
 
 const partnerNavItems: NavItem[] = [
@@ -36,7 +36,8 @@ const partnerNavItems: NavItem[] = [
   { label: 'KYC Review', href: '/kyc-review/agents', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
-  { label: 'Wallet', href: '/wallet', icon: Wallet, permission: 'wallet.view' },
+  { label: 'Wallet', href: '/wallet', icon: Wallet, permission: ['wallet.view', 'wallets.view'] },
+  { label: 'Virtual Accounts', href: '/virtual-accounts', icon: CreditCard, permission: 'virtual_accounts.view' },
   { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
   { label: 'Settlements', href: '/settlements', icon: Wallet, permission: 'settlements.view' },
   { label: 'Reports', href: '/reports', icon: FileText, permission: 'reports.view' },
@@ -77,7 +78,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   // If user has no permissions array or empty permissions, show all items
   // Otherwise filter based on permissions
   const filteredNavItems = user?.permissions && user.permissions.length > 0
-    ? navItems.filter((item) => !item.permission || hasPermission(item.permission))
+    ? navItems.filter((item) => {
+        if (!item.permission) return true;
+        const permissions = Array.isArray(item.permission) ? item.permission : [item.permission];
+        return permissions.some((permission) => hasPermission(permission));
+      })
     : navItems; // Show all items if no permissions defined
 
   // Get branding-based styles

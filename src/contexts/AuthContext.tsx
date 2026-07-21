@@ -712,7 +712,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const hasPermission = useCallback((permission: string) => {
     if (!user) return false;
-    return user.permissions.includes(permission);
+
+    const aliases: Record<string, string[]> = {
+      'wallet.view': ['wallets.view'],
+      'wallets.view': ['wallet.view'],
+      'virtual_accounts.view': ['terminals.virtual_accounts.view'],
+      'virtual_accounts.manage': ['terminals.virtual_accounts.manage'],
+    };
+
+    const effectivePermissions = [permission, ...(aliases[permission] || [])];
+    return effectivePermissions.some((p) => user.permissions.includes(p));
   }, [user]);
 
   const updateKycStatus = useCallback((newStatus: string, requiresOnboarding: boolean) => {

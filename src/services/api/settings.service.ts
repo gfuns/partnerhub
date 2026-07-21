@@ -62,6 +62,33 @@ export interface HubSettings {
 export interface WebhookSettings {
   webhook_url: string | null;
   has_webhook_secret: boolean;
+  webhook_secret?: string | null;
+  webhook_max_retries?: number | null;
+  has_api_token?: boolean;
+}
+
+export interface ApiTokenResponse {
+  success: boolean;
+  message: string;
+  data: {
+    api_token: string;
+  };
+}
+
+export interface UpdateWebhookRequest {
+  partner_id?: number;
+  webhook_url?: string;
+  regenerate_secret?: boolean;
+}
+
+export interface UpdateWebhookResponse {
+  success: boolean;
+  message: string;
+  data: {
+    webhook_url: string | null;
+    webhook_secret?: string;
+    webhook_max_retries?: number;
+  };
 }
 
 export interface BrandingSettings {
@@ -364,6 +391,20 @@ class SettingsService {
    */
   async getAuditLogActions(): Promise<AuditLogActionsResponse> {
     return apiService.get('/settings/audit-logs/actions');
+  }
+
+  /**
+   * Regenerate partner API token
+   */
+  async regenerateApiToken(): Promise<ApiTokenResponse> {
+    return apiService.post('/settings/api-token/regenerate');
+  }
+
+  /**
+   * Update webhook settings
+   */
+  async updateWebhookSettings(data: UpdateWebhookRequest): Promise<UpdateWebhookResponse> {
+    return apiService.put('/settings/webhook', data);
   }
 }
 
