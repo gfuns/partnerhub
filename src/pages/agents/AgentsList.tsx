@@ -27,7 +27,7 @@ export default function AgentsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasPermission } = useAuth();
-  
+
   const [agents, setAgents] = useState<Agent[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +40,13 @@ export default function AgentsList() {
   const [pageSize, setPageSize] = useState(15);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  const formatCurrency = (amount: number) => {
+    return '₦' + Number(amount || 0).toLocaleString('en-NG', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
   useEffect(() => {
     fetchAgents();
@@ -90,15 +97,15 @@ export default function AgentsList() {
   };
 
   const columns = [
-    { 
-      key: 'code', 
+    {
+      key: 'code',
       header: 'Merchant Code',
       render: (item: Agent) => (
         <span className="font-mono font-medium">{item.code}</span>
       ),
     },
-    { 
-      key: 'business_name', 
+    {
+      key: 'business_name',
       header: 'Business Name',
       render: (item: Agent) => (
         <div>
@@ -107,17 +114,30 @@ export default function AgentsList() {
         </div>
       ),
     },
-    { 
-      key: 'phone', 
+    {
+      key: 'phone',
       header: 'Phone',
       render: (item: Agent) => item.contact_phone,
     },
-    { 
-      key: 'location', 
+    {
+      key: 'location',
       header: 'Location',
       render: (item: Agent) => (
         <span className="text-sm">{item.city}, {item.state}</span>
       ),
+    },
+    {
+      key: 'wallet',
+      header: 'Wallet',
+      render: (item: Agent) => {
+        const balance = Number(item.wallet_summary?.available_balance ?? item.wallet_summary?.balance ?? 0);
+        return (
+          <div>
+            <p className="font-medium text-success">{formatCurrency(balance)}</p>
+            <p className="text-xs text-muted-foreground">Available</p>
+          </div>
+        );
+      },
     },
     {
       key: 'status',

@@ -51,6 +51,7 @@ const agentNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard }, // No permission required for dashboard
   { label: 'My Terminals', href: '/my-terminals', icon: CreditCard, permission: 'terminals.view' },
   { label: 'Transactions', href: '/agent/transactions', icon: Receipt, permission: 'transactions.view' },
+  { label: 'Wallet', href: '/wallet', icon: Wallet, permission: ['wallet.view', 'wallets.view'] },
   { label: 'Support', href: '/support', icon: FileText },
   { label: 'Monitoring', href: '/monitoring', icon: Activity, permission: 'monitoring.view' },
   { label: 'Reports', href: '/reports', icon: FileText, permission: 'reports.view' },
@@ -79,10 +80,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   // Otherwise filter based on permissions
   const filteredNavItems = user?.permissions && user.permissions.length > 0
     ? navItems.filter((item) => {
-        if (!item.permission) return true;
-        const permissions = Array.isArray(item.permission) ? item.permission : [item.permission];
-        return permissions.some((permission) => hasPermission(permission));
-      })
+      if (!item.permission) return true;
+      const permissions = Array.isArray(item.permission) ? item.permission : [item.permission];
+      return permissions.some((permission) => hasPermission(permission));
+    })
     : navItems; // Show all items if no permissions defined
 
   // Get branding-based styles

@@ -3,30 +3,44 @@ import apiService from '../ApiService';
 // Wallet interfaces
 export interface Wallet {
   id: number;
-  partner_id: number;
+  partner_id?: number;
+  agent_id?: number;
   available_balance: number;
   pending_balance: number;
   total_swept: number;
   total_settled: number;
+  total_credited?: number;
+  total_debited?: number;
   last_sweep_at: string | null;
   last_settlement_at: string | null;
+  last_credit_at?: string | null;
+  last_debit_at?: string | null;
+  recent_transactions?: WalletTransaction[];
   created_at: string;
   updated_at: string;
   balance?: number;
   pending_settlements?: number;
 }
 
+export interface AgentWalletSummary {
+  agent_id: number;
+  agent_name: string;
+  balance: number;
+  available_balance: number;
+  last_credit_at: string | null;
+}
+
 export interface WalletTransaction {
   id: number;
   wallet_id?: number;
-  type: 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out' | 'sweep' | 'settlement';
+  type: 'credit' | 'debit' | 'sweep_in' | 'settlement_out' | 'refund_in' | 'fee_out' | 'sweep' | 'settlement';
   reference?: string;
   amount: number;
   balance_before?: number;
   balance_after?: number;
   description: string;
   metadata?: Record<string, any> | null;
-  status: 'completed' | 'pending' | 'failed' | 'paid';
+  status?: 'completed' | 'pending' | 'failed' | 'paid' | 'success' | 'error';
   direction?: 'credit' | 'debit';
   mode?: 'auto' | 'manual';
   created_at: string;
@@ -42,11 +56,21 @@ export interface SweepableTerminal {
   last_transaction_at: string | null;
 }
 
+export interface SweepPreview {
+  eligible_terminals: SweepableTerminal[];
+  eligible_agent_wallets: AgentWalletSummary[];
+  terminal_total_amount: number;
+  agent_wallet_total_amount: number;
+  total_amount: number;
+}
+
 export interface SweepSession {
   id: number;
   partner_id: number;
   mode: 'manual' | 'automatic';
   terminals_count: number;
+  terminal_swept_count?: number;
+  agent_wallet_swept_count?: number;
   total_amount: number;
   status: 'completed' | 'partial' | 'failed';
   initiated_by: {
@@ -60,6 +84,8 @@ export interface SweepSession {
 
 export interface SweepTerminalDetail {
   terminal_id: string;
+  source_type?: 'terminal' | 'agent_wallet';
+  agent_id?: number;
   agent_name: string;
   amount: number;
   status: 'success' | 'failed';
@@ -108,8 +134,14 @@ export interface SweepableTerminalsResponse {
   };
 }
 
+export interface SweepPreviewResponse {
+  status: string;
+  data: SweepPreview;
+}
+
 export interface InitiateSweepRequest {
-  terminal_ids: number[];
+  terminal_ids?: number[];
+  agent_ids?: number[];
 }
 
 export interface InitiateSweepResponse {
@@ -152,6 +184,7 @@ export interface UpdateSweepConfigRequest {
 // Wallet Service
 class WalletService {
   private baseUrl = '/wallet';
+  private agentWalletUrl = '/agent-wallet';
   private sweepUrl = '/sweep';
 
   /**
@@ -177,10 +210,49 @@ class WalletService {
   }
 
   /**
+   * Get agent wallet balance and info
+   */
+  async getAgentWallet(): Promise<WalletResponse> {
+    return apiService.get<WalletResponse>(this.agentWalletUrl);
+  }
+
+  /**
+   * Get agent wallet transaction history
+   */
+  async getAgentTransactions(params?: WalletTransactionsParams): Promise<WalletTransactionsResponse> {
+    return apiService.get<WalletTransactionsResponse>(`${this.agentWalletUrl}/history`, { params });
+  }
+
+  /**
    * Get terminals with sweepable balance
    */
   async getSweepableTerminals(): Promise<SweepableTerminalsResponse> {
     return apiService.get<SweepableTerminalsResponse>('/terminals/sweepable');
+  }
+
+  /**
+   * Get sweep preview for both terminals and agent wallets
+   */
+  async getSweepPreview(): Promise<SweepPreviewResponse> {
+    try {
+      return await apiService.get<SweepPreviewResponse>(`${this.sweepUrl}/preview`);
+    } catch (error: any) {
+      // Backward compatibility for older frontend flow that used terminal-only endpoint
+      if (error?.status === 404) {
+        const legacy = await this.getSweepableTerminals();
+        return {
+          status: legacy.status,
+          data: {
+            eligible_terminals: legacy.data,
+            eligible_agent_wallets: [],
+            terminal_total_amount: legacy.summary?.total_balance ?? 0,
+            agent_wallet_total_amount: 0,
+            total_amount: legacy.summary?.total_balance ?? 0,
+          },
+        };
+      }
+      throw error;
+    }
   }
 
   /**
@@ -194,14 +266,30 @@ class WalletService {
    * Get sweep history/sessions
    */
   async getSweepSessions(params?: SweepSessionsParams): Promise<SweepSessionsResponse> {
-    return apiService.get<SweepSessionsResponse>(`${this.sweepUrl}/sessions`, { params });
+    try {
+      return await apiService.get<SweepSessionsResponse>(`${this.sweepUrl}/history`, { params });
+    } catch (error: any) {
+      // Backward compatibility for older backend route
+      if (error?.status === 404) {
+        return apiService.get<SweepSessionsResponse>(`${this.sweepUrl}/sessions`, { params });
+      }
+      throw error;
+    }
   }
 
   /**
    * Get sweep session details
    */
   async getSweepSession(sessionId: number): Promise<{ status: string; data: SweepSession }> {
-    return apiService.get<{ status: string; data: SweepSession }>(`${this.sweepUrl}/sessions/${sessionId}`);
+    try {
+      return await apiService.get<{ status: string; data: SweepSession }>(`${this.sweepUrl}/${sessionId}`);
+    } catch (error: any) {
+      // Backward compatibility for older backend route
+      if (error?.status === 404) {
+        return apiService.get<{ status: string; data: SweepSession }>(`${this.sweepUrl}/sessions/${sessionId}`);
+      }
+      throw error;
+    }
   }
 
   /**

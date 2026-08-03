@@ -574,6 +574,19 @@ export default function AgentDetails() {
     },
   ];
 
+  const formatCurrency = (amount: number) => {
+    return '₦' + Number(amount || 0).toLocaleString('en-NG', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const formatNullableDate = (value?: string | null) => {
+    return value ? new Date(value).toLocaleString() : 'N/A';
+  };
+
+  const wallet = agent.wallet ?? agent.wallet_summary;
+
   return (
     <div>
       <PageHeader
@@ -664,6 +677,21 @@ export default function AgentDetails() {
               <DetailRow label="Contact Name" value={agent.contact_name} />
               <DetailRow label="Contact Email" value={agent.contact_email} />
               <DetailRow label="Contact Phone" value={agent.contact_phone} />
+            </DetailCard>
+          </div>
+
+          {/* Wallet Snapshot */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <DetailCard title="Wallet Snapshot">
+              <DetailRow label="Balance" value={formatCurrency(Number(wallet?.balance ?? 0))} />
+              <DetailRow label="Available Balance" value={formatCurrency(Number(wallet?.available_balance ?? wallet?.balance ?? 0))} />
+              <DetailRow label="Total Credited" value={formatCurrency(Number(wallet?.total_credited ?? 0))} />
+              <DetailRow label="Total Debited" value={formatCurrency(Number(wallet?.total_debited ?? 0))} />
+            </DetailCard>
+
+            <DetailCard title="Wallet Timeline">
+              <DetailRow label="Last Credit" value={formatNullableDate(wallet?.last_credit_at)} />
+              <DetailRow label="Last Debit" value={formatNullableDate(wallet?.last_debit_at)} />
             </DetailCard>
           </div>
 

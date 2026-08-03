@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, Receipt, TrendingUp, Wallet, Eye } from 'lucide-react';
+import { CreditCard, Receipt, TrendingUp, Wallet, Eye, Banknote, Landmark, CircleDollarSign } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { PageHeader } from '@/components/PageHeader';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -21,9 +21,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Cell,
-  PieChart,
-  Pie,
 } from 'recharts';
 
 export default function AgentDashboard() {
@@ -52,24 +49,43 @@ export default function AgentDashboard() {
   // Transform data for charts
   const weeklyData = dashboardData?.transaction_volume
     ? dashboardData.transaction_volume.labels.map((label: string, index: number) => ({
-        day: label,
-        amount: dashboardData.transaction_volume.data[index],
-      }))
+      day: label,
+      amount: dashboardData.transaction_volume.data[index],
+    }))
     : [];
 
   const recentTransactions = dashboardData?.recent_transactions || [];
+  const walletTransactions = dashboardData?.wallet?.recent_transactions || [];
+  const virtualAccount = dashboardData?.virtual_account || null;
 
-  const columns = [
-    { 
-      key: 'reference', 
+  const normalizeStatus = (status?: string) => {
+    const value = (status || '').toLowerCase();
+    if (value.includes('pending')) return 'pending';
+    if (value.includes('fail') || value.includes('error')) return 'error';
+    return 'success';
+  };
+
+  const formatCurrency = (value?: number | string | null) => {
+    const amount = Number(value ?? 0);
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      maximumFractionDigits: 2,
+    }).format(Number.isFinite(amount) ? amount : 0);
+  };
+
+  const terminalTransactionColumns = [
+    {
+      key: 'reference',
       header: 'Transaction ID',
       render: (item: any) => (
         <span className="font-mono text-sm">{item.reference}</span>
       ),
     },
     { key: 'terminal', header: 'Terminal' },
-    { 
-      key: 'amount_formatted', 
+    { key: 'title', header: 'Type', render: (item: any) => item.title || '—' },
+    {
+      key: 'amount_formatted',
       header: 'Amount',
       render: (item: any) => (
         <span className="font-medium">{item.amount_formatted}</span>
@@ -79,7 +95,7 @@ export default function AgentDashboard() {
       key: 'status',
       header: 'Status',
       render: (item: any) => (
-        <StatusBadge status={item.status as 'success' | 'error'} size="sm" />
+        <StatusBadge status={normalizeStatus(item.status) as 'success' | 'error' | 'pending'} size="sm" />
       ),
     },
     { key: 'time', header: 'Time' },
@@ -92,6 +108,39 @@ export default function AgentDashboard() {
           <ActionButton icon={Eye} tooltip="View Details" variant="ghost" />
         </Link>
       ),
+    },
+  ];
+
+  const walletTransactionColumns = [
+    {
+      key: 'reference',
+      header: 'Reference',
+      render: (item: any) => <span className="font-mono text-sm">{item.reference}</span>,
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      render: (item: any) => <span className="capitalize">{item.type}</span>,
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      render: (item: any) => <span className="font-medium">{formatCurrency(item.amount)}</span>,
+    },
+    {
+      key: 'balance_after',
+      header: 'Balance After',
+      render: (item: any) => <span className="font-medium">{formatCurrency(item.balance_after)}</span>,
+    },
+    {
+      key: 'channel',
+      header: 'Channel',
+      render: (item: any) => <span className="capitalize">{item.channel || '—'}</span>,
+    },
+    {
+      key: 'created_at',
+      header: 'Time',
+      render: (item: any) => <span className="text-muted-foreground">{item.created_at ? new Date(item.created_at).toLocaleString() : '—'}</span>,
     },
   ];
 
@@ -121,9 +170,9 @@ export default function AgentDashboard() {
           title="Total Terminals"
           value={dashboardData?.stats?.total_terminals?.value?.toString() || '0'}
           icon={CreditCard}
-          change={{ 
-            value: dashboardData?.stats?.total_terminals?.change || 0, 
-            label: dashboardData?.stats?.total_terminals?.change_label || 'from last month' 
+          change={{
+            value: dashboardData?.stats?.total_terminals?.change || 0,
+            label: dashboardData?.stats?.total_terminals?.change_label || 'from last month'
           }}
           trend={dashboardData?.stats?.total_terminals?.change && dashboardData.stats.total_terminals.change > 0 ? 'up' : 'down'}
         />
@@ -131,9 +180,9 @@ export default function AgentDashboard() {
           title="Active Terminals"
           value={dashboardData?.stats?.active_terminals?.value?.toString() || '0'}
           icon={TrendingUp}
-          change={{ 
-            value: dashboardData?.stats?.active_terminals?.percentage || 0, 
-            label: dashboardData?.stats?.active_terminals?.label || 'currently online' 
+          change={{
+            value: dashboardData?.stats?.active_terminals?.percentage || 0,
+            label: dashboardData?.stats?.active_terminals?.label || 'currently online'
           }}
           trend="up"
         />
@@ -141,9 +190,9 @@ export default function AgentDashboard() {
           title="Today's Volume"
           value={dashboardData?.stats?.todays_volume?.formatted || '₦0.00'}
           icon={Wallet}
-          change={{ 
-            value: dashboardData?.stats?.todays_volume?.change || 0, 
-            label: dashboardData?.stats?.todays_volume?.change_label || 'vs yesterday' 
+          change={{
+            value: dashboardData?.stats?.todays_volume?.change || 0,
+            label: dashboardData?.stats?.todays_volume?.change_label || 'vs yesterday'
           }}
           trend={dashboardData?.stats?.todays_volume?.change && dashboardData.stats.todays_volume.change > 0 ? 'up' : 'down'}
         />
@@ -151,9 +200,9 @@ export default function AgentDashboard() {
           title="Failed Transactions"
           value={dashboardData?.stats?.failed_transactions?.value?.toString() || '0'}
           icon={Receipt}
-          change={{ 
-            value: dashboardData?.stats?.failed_transactions?.change || 0, 
-            label: dashboardData?.stats?.failed_transactions?.change_label || 'from yesterday' 
+          change={{
+            value: dashboardData?.stats?.failed_transactions?.change || 0,
+            label: dashboardData?.stats?.failed_transactions?.change_label || 'from yesterday'
           }}
           trend={dashboardData?.stats?.failed_transactions?.change && dashboardData.stats.failed_transactions.change < 0 ? 'down' : 'up'}
         />
@@ -243,16 +292,108 @@ export default function AgentDashboard() {
         </Card>
       </div>
 
+      {/* Wallet Summary */}
+      <div className="grid gap-4 lg:grid-cols-3 mb-8">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base font-medium">Wallet Summary</CardTitle>
+            <Banknote className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Available Balance</p>
+                <p className="mt-2 text-2xl font-semibold">{formatCurrency(dashboardData?.wallet?.available_balance ?? dashboardData?.wallet?.balance)}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Credited</p>
+                <p className="mt-2 text-2xl font-semibold">{formatCurrency(dashboardData?.wallet?.total_credited)}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Debited</p>
+                <p className="mt-2 text-2xl font-semibold">{formatCurrency(dashboardData?.wallet?.total_debited)}</p>
+              </div>
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Wallet Scope</p>
+                <p className="mt-2 text-2xl font-semibold capitalize">{dashboardData?.wallet?.scope || '—'}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Last Credit</p>
+                <p className="font-medium">
+                  {dashboardData?.wallet?.last_credit_at ? new Date(dashboardData.wallet.last_credit_at).toLocaleString() : 'No credits yet'}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">Last Debit</p>
+                <p className="font-medium">
+                  {dashboardData?.wallet?.last_debit_at ? new Date(dashboardData.wallet.last_debit_at).toLocaleString() : 'No debits yet'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base font-medium">Virtual Account</CardTitle>
+            <Landmark className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {virtualAccount ? (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Account Name</p>
+                  <p className="font-medium">{virtualAccount.account_name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Account Number</p>
+                  <p className="font-mono font-medium">{virtualAccount.account_number}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Bank</p>
+                  <p className="font-medium">{virtualAccount.bank_name}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-full min-h-[220px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                No virtual account assigned.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Wallet Recent Transactions */}
+      <Card className="mb-8">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-medium">Wallet Recent Transactions</CardTitle>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CircleDollarSign className="h-4 w-4" />
+            {walletTransactions.length} records
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={walletTransactionColumns}
+            data={walletTransactions}
+            emptyMessage="No wallet transactions yet"
+          />
+        </CardContent>
+      </Card>
+
       {/* Recent Transactions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-medium">Recent Transactions</CardTitle>
+          <CardTitle className="text-base font-medium">Terminals Recent Transactions</CardTitle>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/agent/transactions">View All</Link>
           </Button>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={recentTransactions} />
+          <DataTable columns={terminalTransactionColumns} data={recentTransactions} />
         </CardContent>
       </Card>
     </div>

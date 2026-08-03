@@ -87,6 +87,23 @@ export interface Agent {
   kyc_documents?: KycDocument[];
   terminals?: AgentTerminal[];
   user_contexts?: AgentUser[];
+  wallet_summary?: {
+    balance?: number;
+    available_balance?: number;
+    total_credited?: number;
+    total_debited?: number;
+    last_credit_at?: string | null;
+    last_debit_at?: string | null;
+  };
+  wallet?: {
+    balance?: number;
+    available_balance?: number;
+    total_credited?: number;
+    total_debited?: number;
+    last_credit_at?: string | null;
+    last_debit_at?: string | null;
+    recent_transactions?: Array<Record<string, any>>;
+  };
 }
 
 export interface AgentStats {

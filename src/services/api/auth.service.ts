@@ -20,6 +20,14 @@ export interface Partner {
   logo_url: string | null;
   code: string;
   kyc_status?: string;
+  wallet?: {
+    balance?: number;
+    available_balance?: number;
+    total_swept?: number;
+    total_settled?: number;
+    last_sweep_at?: string | null;
+    last_settlement_at?: string | null;
+  };
 }
 
 export interface Agent {
@@ -27,6 +35,14 @@ export interface Agent {
   business_name: string;
   code: string;
   kyc_status?: string;
+  wallet?: {
+    balance?: number;
+    available_balance?: number;
+    total_credited?: number;
+    total_debited?: number;
+    last_credit_at?: string | null;
+    last_debit_at?: string | null;
+  };
 }
 
 export interface Context {
@@ -52,6 +68,8 @@ export interface LoginResponse {
     requires_context_selection: boolean;
     requires_kyc_onboarding?: boolean;
     partner_data?: Record<string, any>; // Partner branding and settings data
+    partner_profile?: Record<string, any>;
+    agent_profile?: Record<string, any>;
     token: string;
     token_expires_at: string;
   };
