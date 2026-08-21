@@ -298,13 +298,14 @@ export default function WalletPage() {
   };
 
   const getSelectedAmount = () => {
+    console.log(sweepableTerminals);
     const terminalAmount = sweepableTerminals
-      .filter(t => selectedTerminals.includes(t.id))
-      .reduce((sum, t) => sum + t.balance, 0);
+      .filter(t => selectedTerminals.includes(t.terminal_id))
+      .reduce((sum, t) => sum + Number(t.current_balance), 0);
 
     const agentAmount = sweepableAgentWallets
       .filter((item) => selectedAgentWallets.includes(item.agent_id))
-      .reduce((sum, item) => sum + Number(item.available_balance ?? item.balance ?? 0), 0);
+      .reduce((sum, item) => sum + Number(item.wallet_balance ?? item.balance ?? 0), 0);
 
     return terminalAmount + agentAmount;
   };
@@ -730,21 +731,21 @@ export default function WalletPage() {
                   <div className="space-y-2 max-h-[220px] overflow-y-auto mb-4">
                     {sweepableTerminals.map((terminal) => (
                       <div
-                        key={terminal.id}
-                        className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-colors ${selectedTerminals.includes(terminal.id) ? 'bg-primary/5 border-primary' : 'hover:bg-muted'
+                        key={terminal.terminal_id}
+                        className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-colors ${selectedTerminals.includes(terminal.terminal_id) ? 'bg-primary/5 border-primary' : 'hover:bg-muted'
                           }`}
-                        onClick={() => toggleTerminalSelection(terminal.id)}
+                        onClick={() => toggleTerminalSelection(terminal.terminal_id)}
                       >
                         <Checkbox
-                          checked={selectedTerminals.includes(terminal.id)}
-                          onCheckedChange={() => toggleTerminalSelection(terminal.id)}
+                          checked={selectedTerminals.includes(terminal.terminal_id)}
+                          onCheckedChange={() => toggleTerminalSelection(terminal.terminal_id)}
                         />
                         <div className="flex-1">
                           <p className="font-medium">{terminal.terminal_id}</p>
-                          <p className="text-sm text-muted-foreground">{terminal.agent_name} ({terminal.agent_code})</p>
+                          <p className="text-sm text-muted-foreground">{terminal.agent_name} (SN: {terminal.serial_number})</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-success">{formatCurrency(terminal.balance)}</p>
+                          <p className="font-semibold text-success">{formatCurrency(terminal.current_balance)}</p>
                           {terminal.last_transaction_at && (
                             <p className="text-xs text-muted-foreground">
                               Last txn: {formatDate(terminal.last_transaction_at)}
@@ -788,7 +789,7 @@ export default function WalletPage() {
                           <p className="text-sm text-muted-foreground">Agent ID: {agentWallet.agent_id}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-success">{formatCurrency(Number(agentWallet.available_balance ?? agentWallet.balance ?? 0))}</p>
+                          <p className="font-semibold text-success">{formatCurrency(Number(agentWallet.wallet_balance ?? agentWallet.balance ?? 0))}</p>
                           {agentWallet.last_credit_at && (
                             <p className="text-xs text-muted-foreground">
                               Last credit: {formatDate(agentWallet.last_credit_at)}
