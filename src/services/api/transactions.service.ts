@@ -31,7 +31,7 @@ export interface TransactionListParams {
   search?: string;
   status?: string;
   type?: string;
-  terminal_id?: number;
+  terminal_id?: number | string;
   start_date?: string;
   end_date?: string;
   min_amount?: number;
@@ -43,11 +43,15 @@ export interface TransactionListParams {
 export interface TransactionListResponse {
   success: boolean;
   data: Transaction[];
+  successful_amount?: number;
+  successful_amount_formatted?: string;
   meta: {
     current_page: number;
     last_page: number;
     per_page: number;
     total: number;
+    successful_amount?: number;
+    successful_amount_formatted?: string;
   };
 }
 

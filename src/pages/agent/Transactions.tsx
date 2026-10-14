@@ -89,7 +89,7 @@ export default function AgentTransactions() {
     <div>
       <PageHeader
         title="My Transactions"
-        description="View all transactions from your terminals."
+        description={`Successful amount for the current filters: ${txResp?.successful_amount_formatted || txResp?.meta?.successful_amount_formatted || '₦0.00'}`}
       />
 
       {/* Filters */}
@@ -99,11 +99,11 @@ export default function AgentTransactions() {
           <Input
             placeholder="Search transactions..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             className="pl-9"
           />
         </div>
-        <Select value={selectedTerminal} onValueChange={setSelectedTerminal}>
+        <Select value={selectedTerminal} onValueChange={(value) => { setSelectedTerminal(value); setCurrentPage(1); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Terminal" />
           </SelectTrigger>
@@ -113,7 +113,7 @@ export default function AgentTransactions() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+        <Select value={selectedStatus} onValueChange={(value) => { setSelectedStatus(value); setCurrentPage(1); }}>
           <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -121,7 +121,7 @@ export default function AgentTransactions() {
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="success">Success</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="error">Failed</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
           </SelectContent>
         </Select>
         <Popover>
@@ -135,7 +135,7 @@ export default function AgentTransactions() {
             <Calendar
               mode="single"
               selected={dateFrom}
-              onSelect={setDateFrom}
+              onSelect={(date) => { setDateFrom(date); setCurrentPage(1); }}
               initialFocus
               className="p-3 pointer-events-auto"
             />
@@ -152,7 +152,7 @@ export default function AgentTransactions() {
             <Calendar
               mode="single"
               selected={dateTo}
-              onSelect={setDateTo}
+              onSelect={(date) => { setDateTo(date); setCurrentPage(1); }}
               initialFocus
               className="p-3 pointer-events-auto"
             />

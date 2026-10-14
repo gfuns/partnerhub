@@ -38,6 +38,7 @@ export default function TransactionsList() {
   const [perPage, setPerPage] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [successfulAmount, setSuccessfulAmount] = useState('₦0.00');
 
   useEffect(() => {
     loadTransactions();
@@ -58,12 +59,13 @@ export default function TransactionsList() {
       if (endDate) params.end_date = endDate;
       if (minAmount) params.min_amount = parseFloat(minAmount);
       if (maxAmount) params.max_amount = parseFloat(maxAmount);
-      if (terminalId) params.terminal_id = parseInt(terminalId);
+      if (terminalId) params.terminal_id = terminalId;
 
       const response = await transactionsService.getTransactions(params);
       setTransactions(response.data);
       setTotalPages(response.meta.last_page);
       setTotalItems(response.meta.total);
+      setSuccessfulAmount(response.successful_amount_formatted || response.meta.successful_amount_formatted || '₦0.00');
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -85,7 +87,7 @@ export default function TransactionsList() {
       if (endDate) params.end_date = endDate;
       if (minAmount) params.min_amount = parseFloat(minAmount);
       if (maxAmount) params.max_amount = parseFloat(maxAmount);
-      if (terminalId) params.terminal_id = parseInt(terminalId);
+      if (terminalId) params.terminal_id = terminalId;
 
       transactionsService.exportTransactions(params);
       toast({
@@ -208,7 +210,7 @@ export default function TransactionsList() {
     <div>
       <PageHeader
         title="Transactions"
-        description="View and manage all transactions across your terminals."
+        description={`Successful amount for the current filters: ${successfulAmount}`}
         actions={
           <PermissionGate permission="transactions.export">
             <Button onClick={handleExport}>
@@ -227,7 +229,7 @@ export default function TransactionsList() {
             <Input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
               className="w-44"
             />
           </div>
@@ -236,7 +238,7 @@ export default function TransactionsList() {
             <Input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
               className="w-44"
             />
           </div>
@@ -256,7 +258,7 @@ export default function TransactionsList() {
           </div> */}
           <div className="flex flex-col gap-2">
             <label className="text-xs text-muted-foreground">Status</label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
               <SelectTrigger className="w-36">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -277,7 +279,7 @@ export default function TransactionsList() {
               type="number"
               placeholder="0.00"
               value={minAmount}
-              onChange={(e) => setMinAmount(e.target.value)}
+              onChange={(e) => { setMinAmount(e.target.value); setCurrentPage(1); }}
               className="w-32"
             />
           </div>
@@ -287,18 +289,18 @@ export default function TransactionsList() {
               type="number"
               placeholder="0.00"
               value={maxAmount}
-              onChange={(e) => setMaxAmount(e.target.value)}
+              onChange={(e) => { setMaxAmount(e.target.value); setCurrentPage(1); }}
               className="w-32"
             />
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-xs text-muted-foreground">Terminal ID</label>
             <Input
-              type="number"
+              type="text"
               placeholder="Terminal ID"
               value={terminalId}
-              onChange={(e) => setTerminalId(e.target.value)}
-              className="w-32"
+              onChange={(e) => { setTerminalId(e.target.value); setCurrentPage(1); }}
+              className="w-40"
             />
           </div>
           <div className="flex flex-col gap-2 flex-1">
@@ -306,7 +308,7 @@ export default function TransactionsList() {
             <Input
               placeholder="Search by ref, RRN, or narration..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="max-w-sm"
             />
           </div>
