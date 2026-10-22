@@ -19,12 +19,6 @@ import { useToast } from '@/hooks/use-toast';
 import { agentsService, CreateAgentRequest } from '@/services/api';
 import { toast as sonnerToast } from 'sonner';
 
-/**
- * HOTFIX: merchant creation only requires business name, contact name, and contact email.
- * Set this to false to require phone, address, city, and state again.
- */
-const RELAX_MERCHANT_CREATE_FIELDS = true;
-
 interface FormData extends CreateAgentRequest { }
 
 interface FormErrors {
@@ -76,19 +70,17 @@ export default function AddAgent() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
       newErrors.contact_email = 'Invalid email format';
     }
-    if (!RELAX_MERCHANT_CREATE_FIELDS) {
-      if (!formData.contact_phone?.trim()) {
-        newErrors.contact_phone = 'Contact phone is required';
-      }
-      if (!formData.address?.trim()) {
-        newErrors.address = 'Address is required';
-      }
-      if (!formData.city?.trim()) {
-        newErrors.city = 'City is required';
-      }
-      if (!formData.state?.trim()) {
-        newErrors.state = 'State is required';
-      }
+    if (!formData.contact_phone?.trim()) {
+      newErrors.contact_phone = 'Contact phone is required';
+    }
+    if (!formData.address?.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    if (!formData.city?.trim()) {
+      newErrors.city = 'City is required';
+    }
+    if (!formData.state?.trim()) {
+      newErrors.state = 'State is required';
     }
 
     setErrors(newErrors);
@@ -169,7 +161,7 @@ export default function AddAgent() {
                   />
                 </FormField>
 
-                <FormField label="Contact Phone" required={!RELAX_MERCHANT_CREATE_FIELDS} error={errors.contact_phone}>
+                <FormField label="Contact Phone" required error={errors.contact_phone}>
                   <Input
                     value={formData.contact_phone}
                     onChange={(e) => updateField('contact_phone', e.target.value)}
@@ -177,7 +169,7 @@ export default function AddAgent() {
                   />
                 </FormField>
 
-                <FormField label="Business Address" required={!RELAX_MERCHANT_CREATE_FIELDS} error={errors.address}>
+                <FormField label="Business Address" required error={errors.address}>
                   <Input
                     value={formData.address}
                     onChange={(e) => updateField('address', e.target.value)}
@@ -186,7 +178,7 @@ export default function AddAgent() {
                 </FormField>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField label="City" required={!RELAX_MERCHANT_CREATE_FIELDS} error={errors.city}>
+                  <FormField label="City" required error={errors.city}>
                     <Input
                       value={formData.city}
                       onChange={(e) => updateField('city', e.target.value)}
@@ -194,7 +186,7 @@ export default function AddAgent() {
                     />
                   </FormField>
 
-                  <FormField label="State" required={!RELAX_MERCHANT_CREATE_FIELDS} error={errors.state}>
+                  <FormField label="State" required error={errors.state}>
                     <Select
                       value={formData.state}
                       onValueChange={(v) => updateField('state', v)}
