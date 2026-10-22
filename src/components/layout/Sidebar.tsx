@@ -35,7 +35,7 @@ const partnerNavItems: NavItem[] = [
   { label: 'Merchants', href: '/agents', icon: Users, permission: 'agents.view' },
   { label: 'KYC Review', href: '/kyc-review/agents', icon: FileCheck, permission: 'agents.view' },
   { label: 'Terminals', href: '/terminals', icon: CreditCard, permission: 'terminals.view' },
-  { label: 'Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
+  { label: 'Terminal Transactions', href: '/transactions', icon: Receipt, permission: 'transactions.view' },
   { label: 'Wallet', href: '/wallet', icon: Wallet, permission: ['wallet.view', 'wallets.view'] },
   { label: 'Virtual Accounts', href: '/virtual-accounts', icon: CreditCard, permission: 'virtual_accounts.view' },
   { label: 'Commissions', href: '/commissions', icon: Coins, permission: 'commissions.view' },
